@@ -23,7 +23,8 @@ public class PlayedModMenu implements ModMenuApi {
 
 			ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 			this.addTrackingCategory(builder, entryBuilder);
-			this.addDisplayCategory(builder, entryBuilder);
+			this.addMenusAndListsCategory(builder, entryBuilder);
+			this.addInGameDisplayCategory(builder, entryBuilder);
 			this.addSortingCategory(builder, entryBuilder);
 			return builder.build();
 		};
@@ -35,12 +36,12 @@ public class PlayedModMenu implements ModMenuApi {
 			.setExpanded(true)
 			.setTooltip(Component.literal("Choose where Played records playtime"));
 
-		targets.add(entryBuilder.startBooleanToggle(Component.literal("Singleplayer"), PlayedConfig.shouldTrackWorlds())
+		targets.add(entryBuilder.startBooleanToggle(Component.literal("Track Singleplayer Worlds"), PlayedConfig.shouldTrackWorlds())
 			.setDefaultValue(true)
 			.setTooltip(Component.literal("Track playtime in singleplayer worlds"))
 			.setSaveConsumer(PlayedConfig::setTrackWorlds)
 			.build());
-		targets.add(entryBuilder.startBooleanToggle(Component.literal("Multiplayer"), PlayedConfig.shouldTrackServers())
+		targets.add(entryBuilder.startBooleanToggle(Component.literal("Track Multiplayer Servers"), PlayedConfig.shouldTrackServers())
 			.setDefaultValue(true)
 			.setTooltip(Component.literal("Track playtime on multiplayer servers"))
 			.setSaveConsumer(PlayedConfig::setTrackServers)
@@ -50,12 +51,12 @@ public class PlayedModMenu implements ModMenuApi {
 		var afk = entryBuilder.startSubCategory(Component.literal("AFK Detection"))
 			.setExpanded(true)
 			.setTooltip(Component.literal("Optionally exclude inactive time"));
-		afk.add(entryBuilder.startBooleanToggle(Component.literal("Pause AFK Time"), PlayedConfig.shouldPauseOnAfk())
+		afk.add(entryBuilder.startBooleanToggle(Component.literal("Ignore AFK Time"), PlayedConfig.shouldPauseOnAfk())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Pause playtime tracking when AFK"))
 			.setSaveConsumer(PlayedConfig::setPauseOnAfk)
 			.build());
-		afk.add(entryBuilder.startIntField(Component.literal("AFK Timeout (Seconds)"), PlayedConfig.getAfkTimeoutSeconds())
+		afk.add(entryBuilder.startIntField(Component.literal("AFK Timeout"), PlayedConfig.getAfkTimeoutSeconds())
 			.setDefaultValue(900)
 			.setMin(0)
 			.setTooltip(Component.literal("Seconds of inactivity before pausing playtime tracking"))
@@ -64,8 +65,8 @@ public class PlayedModMenu implements ModMenuApi {
 		tracking.addEntry(afk.build());
 	}
 
-	private void addDisplayCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
-		ConfigCategory display = builder.getOrCreateCategory(Component.literal("Display"));
+	private void addMenusAndListsCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
+		ConfigCategory display = builder.getOrCreateCategory(Component.literal("Menus & Lists"));
 
 		var lists = entryBuilder.startSubCategory(Component.literal("World & Server Lists"))
 			.setExpanded(true)
@@ -117,66 +118,103 @@ public class PlayedModMenu implements ModMenuApi {
 			.build());
 		display.addEntry(menus.build());
 
-		var hud = entryBuilder.startSubCategory(Component.literal("HUD"))
+	}
+
+	private void addInGameDisplayCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
+		ConfigCategory display = builder.getOrCreateCategory(Component.literal("In-Game Display"));
+		var locations = entryBuilder.startSubCategory(Component.literal("Display Locations"))
 			.setExpanded(true)
-			.setTooltip(Component.literal("Configure the optional in-game playtime HUD"));
-		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show Playtime HUD"), PlayedConfig.shouldShowHudPlaytime())
+			.setTooltip(Component.literal("Choose one or more places to show your playtime"));
+		locations.add(entryBuilder.startBooleanToggle(Component.literal("Corner Overlay"), PlayedConfig.shouldShowHudPlaytime())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Show playtime in a freely positioned overlay"))
 			.setSaveConsumer(PlayedConfig::setShowHudPlaytime)
 			.build());
-		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show in Action Bar"), PlayedConfig.shouldShowActionBarPlaytime())
+		locations.add(entryBuilder.startBooleanToggle(Component.literal("Action Bar"), PlayedConfig.shouldShowActionBarPlaytime())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Show playtime above the hotbar"))
 			.setSaveConsumer(PlayedConfig::setShowActionBarPlaytime)
 			.build());
-		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show in Tab List"), PlayedConfig.shouldShowTabListPlaytime())
+		locations.add(entryBuilder.startBooleanToggle(Component.literal("Tab List"), PlayedConfig.shouldShowTabListPlaytime())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Show playtime below the player list while holding Tab"))
 			.setSaveConsumer(PlayedConfig::setShowTabListPlaytime)
 			.build());
-		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show as Scoreboard"), PlayedConfig.shouldShowScoreboardPlaytime())
+		locations.add(entryBuilder.startBooleanToggle(Component.literal("Scoreboard Sidebar"), PlayedConfig.shouldShowScoreboardPlaytime())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Show playtime in a compact sidebar on the right"))
 			.setSaveConsumer(PlayedConfig::setShowScoreboardPlaytime)
 			.build());
-		hud.add(entryBuilder.startBooleanToggle(Component.literal("HUD Background"), PlayedConfig.shouldShowHudBackground())
+		display.addEntry(locations.build());
+
+		var appearance = entryBuilder.startSubCategory(Component.literal("Corner Overlay Layout"))
+			.setExpanded(true)
+			.setTooltip(Component.literal("These options only affect the Corner Overlay"));
+		appearance.add(entryBuilder.startBooleanToggle(Component.literal("Background"), PlayedConfig.shouldShowHudBackground())
 			.setDefaultValue(false)
 			.setTooltip(Component.literal("Show a translucent background behind the HUD text"))
 			.setSaveConsumer(PlayedConfig::setShowHudBackground)
 			.build());
-		hud.add(entryBuilder.startEnumSelector(Component.literal("Position"), PlayedConfig.HudPosition.class, PlayedConfig.getHudPosition())
+		appearance.add(entryBuilder.startEnumSelector(Component.literal("Position"), PlayedConfig.HudPosition.class, PlayedConfig.getHudPosition())
 			.setDefaultValue(PlayedConfig.HudPosition.TOP_LEFT)
 			.setTooltip(Component.literal("Choose where the playtime display appears"))
 			.setSaveConsumer(PlayedConfig::setHudPosition)
 			.build());
-		hud.add(entryBuilder.startIntSlider(Component.literal("HUD Size (%)"), PlayedConfig.getHudScalePercent(), 50, 200)
+		appearance.add(entryBuilder.startIntSlider(Component.literal("Size (%)"), PlayedConfig.getHudScalePercent(), 50, 200)
 			.setDefaultValue(100)
 			.setTooltip(Component.literal("Scale the HUD between 50% and 200%"))
 			.setSaveConsumer(PlayedConfig::setHudScalePercent)
 			.build());
-		hud.add(entryBuilder.startIntField(Component.literal("HUD Horizontal Offset"), PlayedConfig.getHudHorizontalOffset())
+		appearance.add(entryBuilder.startIntField(Component.literal("Horizontal Margin"), PlayedConfig.getHudHorizontalOffset())
 			.setDefaultValue(5)
 			.setMin(0)
 			.setMax(1000)
 			.setTooltip(Component.literal("Horizontal distance from the selected corner"))
 			.setSaveConsumer(PlayedConfig::setHudHorizontalOffset)
 			.build());
-		hud.add(entryBuilder.startIntField(Component.literal("HUD Vertical Offset"), PlayedConfig.getHudVerticalOffset())
+		appearance.add(entryBuilder.startIntField(Component.literal("Vertical Margin"), PlayedConfig.getHudVerticalOffset())
 			.setDefaultValue(5)
 			.setMin(0)
 			.setMax(1000)
 			.setTooltip(Component.literal("Vertical distance from the selected corner"))
 			.setSaveConsumer(PlayedConfig::setHudVerticalOffset)
 			.build());
-		hud.add(entryBuilder.startStrField(Component.literal("HUD Template"), PlayedConfig.getHudTemplate())
+		display.addEntry(appearance.build());
+
+		var content = entryBuilder.startSubCategory(Component.literal("Content & Format"))
+			.setExpanded(true)
+			.setTooltip(Component.literal("Shared by all in-game display locations"));
+		content.add(entryBuilder.startEnumSelector(Component.literal("Time Format"), PlayedConfig.TimeFormatMode.class, PlayedConfig.getTimeFormat())
+			.setDefaultValue(PlayedConfig.TimeFormatMode.VERBOSE)
+			.setTooltip(Component.literal("Choose how durations are written"))
+			.setSaveConsumer(PlayedConfig::setTimeFormat)
+			.build());
+		content.add(entryBuilder.startStrField(Component.literal("Text Template"), PlayedConfig.getHudTemplate())
 			.setDefaultValue("<gradient:#a855f7:#ec4899>\u23F1 {current}</gradient>")
 			.setTooltip(Component.literal("Supports {time}, {session}, {current}, and {total}"))
 			.setSaveConsumer(PlayedConfig::setHudTemplate)
 			.build());
-		display.addEntry(hud.build());
+		display.addEntry(content.build());
+	}
 
-		var resetButtons = entryBuilder.startSubCategory(Component.literal("Reset Buttons"))
+	private void addSortingCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
+		ConfigCategory sorting = builder.getOrCreateCategory(Component.literal("List Management"));
+		var sortOptions = entryBuilder.startSubCategory(Component.literal("Playtime Sorting"))
+			.setExpanded(true)
+			.setTooltip(Component.literal("Optionally reorder worlds and servers by playtime"));
+		sortOptions.add(entryBuilder.startEnumSelector(Component.literal("Singleplayer Worlds"), PlayedConfig.SortMode.class, PlayedConfig.getSortWorldList())
+			.setDefaultValue(PlayedConfig.SortMode.DISABLED)
+			.setTooltip(Component.literal("Sort the singleplayer world list by playtime"))
+			.setSaveConsumer(PlayedConfig::setSortWorldList)
+			.build());
+		sortOptions.add(entryBuilder.startEnumSelector(Component.literal("Multiplayer Servers"), PlayedConfig.SortMode.class, PlayedConfig.getSortServerList())
+			.setDefaultValue(PlayedConfig.SortMode.DISABLED)
+			.setTooltip(Component.literal("Sort the multiplayer server list by playtime"))
+			.setSaveConsumer(PlayedConfig::setSortServerList)
+			.build());
+		sorting.addEntry(sortOptions.build());
+
+		var resetButtons = entryBuilder.startSubCategory(Component.literal("Reset Controls"))
 			.setExpanded(true)
 			.setTooltip(Component.literal("Configure per-world and per-server reset buttons"));
 		resetButtons.add(entryBuilder.startBooleanToggle(Component.literal("Singleplayer Reset Button"), PlayedConfig.shouldShowEditWorldResetButton())
@@ -189,25 +227,6 @@ public class PlayedModMenu implements ModMenuApi {
 			.setTooltip(Component.literal("Show the reset button in the edit server screen"))
 			.setSaveConsumer(PlayedConfig::setShowEditServerResetButton)
 			.build());
-		display.addEntry(resetButtons.build());
-	}
-
-	private void addSortingCategory(ConfigBuilder builder, ConfigEntryBuilder entryBuilder) {
-		ConfigCategory sorting = builder.getOrCreateCategory(Component.literal("Sorting & Formatting"));
-		sorting.addEntry(entryBuilder.startEnumSelector(Component.literal("Sort Singleplayer List"), PlayedConfig.SortMode.class, PlayedConfig.getSortWorldList())
-			.setDefaultValue(PlayedConfig.SortMode.DISABLED)
-			.setTooltip(Component.literal("Sort the singleplayer world list by playtime"))
-			.setSaveConsumer(PlayedConfig::setSortWorldList)
-			.build());
-		sorting.addEntry(entryBuilder.startEnumSelector(Component.literal("Sort Multiplayer List"), PlayedConfig.SortMode.class, PlayedConfig.getSortServerList())
-			.setDefaultValue(PlayedConfig.SortMode.DISABLED)
-			.setTooltip(Component.literal("Sort the multiplayer server list by playtime"))
-			.setSaveConsumer(PlayedConfig::setSortServerList)
-			.build());
-		sorting.addEntry(entryBuilder.startEnumSelector(Component.literal("Time Format"), PlayedConfig.TimeFormatMode.class, PlayedConfig.getTimeFormat())
-			.setDefaultValue(PlayedConfig.TimeFormatMode.VERBOSE)
-			.setTooltip(Component.literal("Format used to display playtime"))
-			.setSaveConsumer(PlayedConfig::setTimeFormat)
-			.build());
+		sorting.addEntry(resetButtons.build());
 	}
 }
