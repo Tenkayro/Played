@@ -1,0 +1,572 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'com.modrinth.minotaur' version '2.+'
+	id 'net.darkhax.curseforgegradle' version '1.1.28'
+	id 'maven-publish'
+}
+
+def startTasks = gradle.startParameter.taskNames
+def isDryRun = gradle.startParameter.dryRun
+def isHelpRequest = startTasks.any { it == "help" || it.endsWith(":help") }
+def isPatchRequest = startTasks.any { it == "publishPatch" || it.endsWith(":publishPatch") }
+def isMinorRequest = startTasks.any { it == "publishMinor" || it.endsWith(":publishMinor") }
+def isReleaseRequest = isPatchRequest || isMinorRequest
+def shouldPrepareReleaseVersion = isReleaseRequest && !isDryRun && !isHelpRequest
+def storedModVersion = project.mod_version.toString()
+def pendingReleaseVersion = null
+
+if (isPatchRequest && isMinorRequest) {
+	throw new GradleException("Run either publishPatch or publishMinor, not both in the same Gradle invocation.")
+}
+
+if (shouldPrepareReleaseVersion) {
+	def versionMatcher = storedModVersion =~ /^(\d+)\.(\d+)\.(\d+)(.*)$/
+	if (!versionMatcher.matches()) {
+		throw new GradleException("Cannot auto-bump invalid mod_version '${storedModVersion}'.")
+	}
+
+	def major = versionMatcher.group(1)
+	def minor = versionMatcher.group(2).toInteger()
+	def patch = versionMatcher.group(3).toInteger()
+	def suffix = versionMatcher.group(4)
+
+	if (isPatchRequest) {
+		patch += 1
+	} else {
+		minor += 1
+		patch = 0
+	}
+
+	pendingReleaseVersion = "${major}.${minor}.${patch}${suffix}"
+	project.ext.mod_version = pendingReleaseVersion
+	println ">>> Preparing release version ${pendingReleaseVersion}; gradle.properties will be updated only after every platform succeeds. <<<"
+}
+
+version = project.mod_version
+group = project.maven_group
+def resolvedModVersion = version.toString()
+def resolvedProjectName = name
+
+def loadDotEnv(File file) {
+	def values = [:]
+	if (!file.exists()) {
+		return values
+	}
+
+	file.eachLine('UTF-8') { line ->
+		String trimmed = line.trim()
+		if (trimmed.isEmpty() || trimmed.startsWith('#')) {
+			return
+		}
+
+		int separatorIndex = trimmed.indexOf('=')
+		if (separatorIndex <= 0) {
+			return
+		}
+
+		String key = trimmed.substring(0, separatorIndex).trim()
+		String value = trimmed.substring(separatorIndex + 1).trim()
+		if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+			value = value.substring(1, value.length() - 1)
+		}
+		values[key] = value
+	}
+
+	return values
+}
+
+def dotEnv = loadDotEnv(rootProject.file(".env"))
+def modrinthToken = System.getenv("MODRINTH_TOKEN") ?: dotEnv["MODRINTH_TOKEN"]
+def curseforgeToken = System.getenv("CURSEFORGE_TOKEN") ?: dotEnv["CURSEFORGE_TOKEN"]
+def curseforgeProjectId = System.getenv("CURSEFORGE_PROJECT_ID") ?: dotEnv["CURSEFORGE_PROJECT_ID"] ?: project.findProperty("curseforge_project_id")?.toString()
+def githubToken = System.getenv("GH_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: dotEnv["GH_TOKEN"] ?: dotEnv["GITHUB_TOKEN"]
+def githubRepository = project.findProperty("github_repository")?.toString()
+def modrinthVersionNumber = "mc${project.minecraft_version}-${project.mod_version}-fabric"
+def modrinthVersionName = "Played ${project.mod_version} for Fabric ${project.minecraft_version}"
+
+def readOptionalUtf8 = { String path ->
+	File file = rootProject.file(path)
+	return file.isFile() ? file.getText("UTF-8") : ""
+}
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"played" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	compileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+	localRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
+	
+	implementation include("net.kyori:adventure-api:4.17.0")
+	implementation include("net.kyori:adventure-key:4.17.0")
+	implementation include("net.kyori:adventure-text-minimessage:4.17.0")
+	implementation include("net.kyori:adventure-text-serializer-gson:4.17.0")
+	implementation include("net.kyori:adventure-text-serializer-json:4.17.0")
+	implementation include("net.kyori:examination-api:1.3.0")
+	implementation include("net.kyori:examination-string:1.3.0")
+	implementation include("net.kyori:option:1.0.0")
+
+	compileOnly "maven.modrinth:cloth-config:${project.cloth_config_version}"
+	localRuntime "maven.modrinth:cloth-config:${project.cloth_config_version}"
+
+	testImplementation "org.junit.jupiter:junit-jupiter:5.12.2"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+// The tests only need compiled client classes. Adding the complete client
+// output also exposes build/resources/client as an IDE library, which does not
+// exist briefly after `clean` and leaves Eclipse JDT/VS Code with error 964.
+sourceSets.test.compileClasspath += sourceSets.client.output.classesDirs
+sourceSets.test.runtimeClasspath += sourceSets.client.output.classesDirs
+
+tasks.named("test") {
+	useJUnitPlatform()
+}
+
+modrinth {
+	token = modrinthToken
+	projectId = project.modrinth_project_id
+	versionNumber = project.provider { "mc${project.minecraft_version}-${project.mod_version}-fabric" }
+	versionName = project.provider { "Played ${project.mod_version} for Fabric ${project.minecraft_version}" }
+	versionType = project.modrinth_version_type
+	uploadFile = tasks.named("jar")
+	gameVersions = [project.minecraft_version]
+	loaders = ["fabric"]
+	changelog = readOptionalUtf8(".public/changelog.md")
+	syncBodyFrom = readOptionalUtf8(".public/description.md")
+	failSilently = isReleaseRequest
+
+	dependencies {
+		required.project "fabric-api"
+		required.project "cloth-config"
+		optional.project "modmenu"
+	}
+}
+
+tasks.named("build") {
+	mustRunAfter(tasks.named("clean"))
+}
+
+def validateRelease = tasks.register("validateRelease") {
+	group = null
+	description = "Validate the local release configuration before uploading"
+
+	doLast {
+		def errors = []
+		if (modrinthToken == null || modrinthToken.isBlank()) {
+			errors << "Set MODRINTH_TOKEN in your environment or .env."
+		}
+		if (curseforgeToken == null || curseforgeToken.isBlank()) {
+			errors << "Set CURSEFORGE_TOKEN in your environment or .env."
+		}
+		if (curseforgeProjectId == null || curseforgeProjectId.isBlank()) {
+			errors << "Set curseforge_project_id in gradle.properties."
+		}
+		if (githubRepository == null || githubRepository.isBlank()) {
+			errors << "Set github_repository in gradle.properties."
+		}
+		if (!rootProject.file(".public/changelog.md").isFile()) {
+			errors << "Create .public/changelog.md."
+		}
+		if (!rootProject.file(".public/description.md").isFile()) {
+			errors << "Create .public/description.md."
+		}
+		if (!rootProject.file(".public/release-header.md").isFile()) {
+			errors << "Create .public/release-header.md."
+		}
+		try {
+			def processBuilder = new ProcessBuilder("gh", "auth", "status", "--hostname", "github.com")
+			processBuilder.redirectErrorStream(true)
+			if (githubToken != null && !githubToken.isBlank()) {
+				processBuilder.environment().put("GH_TOKEN", githubToken)
+			}
+			def process = processBuilder.start()
+			boolean finished = process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
+			if (!finished) {
+				process.destroyForcibly()
+				errors << "GitHub CLI authentication check timed out."
+			} else if (process.exitValue() != 0) {
+				errors << "Authenticate GitHub CLI first with 'gh auth login'."
+			}
+		} catch (Exception ignored) {
+			errors << "Install GitHub CLI (gh) and authenticate it before publishing."
+		}
+
+		if (!errors.isEmpty()) {
+			throw new GradleException("Release configuration is incomplete:\n- " + errors.join("\n- "))
+		}
+		println ">>> Release configuration validated for version ${resolvedModVersion}."
+	}
+}
+
+def modrinthTask = tasks.named("modrinth", com.modrinth.minotaur.TaskModrinthUpload) {
+	dependsOn(tasks.named("clean"))
+	dependsOn(tasks.named("build"))
+	if (isReleaseRequest) {
+		dependsOn(validateRelease)
+	}
+}
+
+def findPublishedModrinthVersion = {
+	String encodedProjectId = java.net.URLEncoder.encode(project.modrinth_project_id.toString(), "UTF-8")
+	String apiUrl = project.extensions.getByName("modrinth").apiUrl.get().replaceFirst('/+$', '')
+	URL endpoint = new URL("${apiUrl}/project/${encodedProjectId}/version")
+	java.net.HttpURLConnection connection = (java.net.HttpURLConnection) endpoint.openConnection()
+	connection.setConnectTimeout(15_000)
+	connection.setReadTimeout(30_000)
+	connection.setRequestProperty("Accept", "application/json")
+	connection.setRequestProperty("User-Agent", "Zorblock/Played Gradle release verification")
+
+	try {
+		int status = connection.responseCode
+		if (status != 200) {
+			String response = connection.errorStream == null ? "" : connection.errorStream.getText("UTF-8")
+			throw new GradleException("Could not verify Modrinth version ${modrinthVersionNumber}: HTTP ${status} ${response}".trim())
+		}
+
+		def versions = new groovy.json.JsonSlurper().parse(connection.inputStream)
+		return versions.find { it.version_number == modrinthVersionNumber }
+	} catch (GradleException exception) {
+		throw exception
+	} catch (Exception exception) {
+		throw new GradleException("Could not verify Modrinth version ${modrinthVersionNumber}: ${exception.message}", exception)
+	} finally {
+		connection.disconnect()
+	}
+}
+
+def modrinthAttempts = [modrinthTask]
+def previousModrinthAttempt = modrinthTask
+def confirmedModrinthVersion = [value: null]
+[5, 15].eachWithIndex { retryDelaySeconds, index ->
+	def retryNumber = index + 2
+	def dependencyAttempt = previousModrinthAttempt
+	def retryTask = tasks.register("modrinthRetry${retryNumber}", com.modrinth.minotaur.TaskModrinthUpload) {
+		group = null
+		description = "Retry the Modrinth upload after a failed or timed-out request"
+		dependsOn(dependencyAttempt)
+		getWiredInputFiles().from(project.extensions.getByName("modrinth").file)
+		notCompatibleWithConfigurationCache("Minotaur is fundamentally incompatible with configuration cache")
+
+		onlyIf {
+			if (modrinthAttempts.any { it.get().newVersion != null }) {
+				println ">>> Modrinth: An earlier upload attempt succeeded; retry ${retryNumber} is not needed."
+				return false
+			}
+			if (confirmedModrinthVersion.value != null) {
+				println ">>> Modrinth: Version ${modrinthVersionNumber} is already confirmed online; retry ${retryNumber} is not needed."
+				return false
+			}
+
+			println ">>> Modrinth: Waiting ${retryDelaySeconds}s before checking attempt ${retryNumber}..."
+			Thread.sleep(retryDelaySeconds * 1_000L)
+			def existingVersion = findPublishedModrinthVersion()
+			if (existingVersion != null) {
+				confirmedModrinthVersion.value = existingVersion
+				println ">>> Modrinth: Version ${modrinthVersionNumber} already exists (ID ${existingVersion.id}); no retry needed."
+				return false
+			}
+
+			println ">>> Modrinth: Starting upload attempt ${retryNumber} of 3..."
+			return true
+		}
+	}
+
+	modrinthAttempts << retryTask
+	previousModrinthAttempt = retryTask
+}
+
+def verifyModrinthRelease = tasks.register("verifyModrinthRelease") {
+	group = null
+	description = "Require the intended Modrinth version to exist before continuing the release"
+	dependsOn(previousModrinthAttempt)
+
+	doLast {
+		def successfulAttempt = modrinthAttempts.find { it.get().newVersion != null }
+		if (successfulAttempt != null) {
+			println ">>> Modrinth: Upload confirmed by Minotaur for version ${modrinthVersionNumber}."
+			return
+		}
+		if (confirmedModrinthVersion.value != null) {
+			println ">>> Modrinth: Upload confirmed online for version ${modrinthVersionNumber} (ID ${confirmedModrinthVersion.value.id})."
+			return
+		}
+
+		def existingVersion = findPublishedModrinthVersion()
+		if (existingVersion == null) {
+			throw new GradleException("Modrinth upload failed after 3 attempts and version ${modrinthVersionNumber} does not exist online.")
+		}
+		println ">>> Modrinth: Upload confirmed online for version ${modrinthVersionNumber} (ID ${existingVersion.id})."
+	}
+}
+
+if (curseforgeProjectId == null || curseforgeProjectId.isBlank()) {
+	tasks.register("curseforge") {
+		group = "upload"
+		description = "Build and upload this release to CurseForge"
+		doFirst {
+			throw new GradleException("Set curseforge_project_id in gradle.properties before publishing to CurseForge.")
+		}
+	}
+} else {
+	tasks.register("curseforge", net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+		description = "Build and upload this release to CurseForge"
+		dependsOn(tasks.named("clean"))
+		dependsOn(tasks.named("build"))
+
+		apiToken = curseforgeToken
+
+		def mainFile = upload(curseforgeProjectId, tasks.named("jar").get())
+		mainFile.releaseType = project.modrinth_version_type
+		mainFile.changelogType = "markdown"
+		mainFile.changelog = readOptionalUtf8(".public/changelog.md")
+		mainFile.addGameVersion(project.minecraft_version)
+		mainFile.addModLoader("Fabric")
+		mainFile.addEnvironment("Client")
+		mainFile.addRequirement("fabric-api")
+		mainFile.addRequirement("cloth-config")
+		mainFile.addOptional("modmenu")
+
+		doFirst {
+			if (curseforgeToken == null || curseforgeToken.isBlank()) {
+				throw new GradleException("Set CURSEFORGE_TOKEN in your environment or .env before publishing to CurseForge.")
+			}
+			mainFile.displayName = "Played ${project.mod_version} for Fabric ${project.minecraft_version}"
+			println ">>> CurseForge: Starting upload for version ${project.mod_version}..."
+		}
+
+		doLast {
+			println ">>> CurseForge: Successfully uploaded version ${project.mod_version}!"
+		}
+	}
+}
+
+tasks.named("modrinthSyncBody") {
+	group = null
+}
+
+tasks.register("modrinth-sync") {
+	group = "upload"
+	description = "Sync project description to Modrinth"
+	dependsOn(tasks.named("modrinthSyncBody"))
+}
+
+processResources {
+	inputs.property "version", resolvedModVersion
+
+	filesMatching("fabric.mod.json") {
+		expand "version": resolvedModVersion
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	inputs.property "projectName", resolvedProjectName
+
+	from("LICENSE") {
+		rename { "${it}_${resolvedProjectName}"}
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}
+
+def githubReleaseHeaderFile = rootProject.file(".public/release-header.md")
+def changelogFile = rootProject.file(".public/changelog.md")
+def generatedGithubReleaseNotes = layout.buildDirectory.file("github-release-notes.md")
+
+def prepareGithubReleaseNotes = tasks.register("prepareGithubReleaseNotes") {
+	group = "upload"
+	description = "Combine the release header and changelog for GitHub"
+	inputs.files(githubReleaseHeaderFile, changelogFile)
+	outputs.file(generatedGithubReleaseNotes)
+	mustRunAfter(tasks.named("build"))
+
+	doLast {
+		if (!githubReleaseHeaderFile.isFile()) {
+			throw new GradleException("GitHub release header not found: ${githubReleaseHeaderFile}")
+		}
+		if (!changelogFile.isFile()) {
+			throw new GradleException("Changelog not found: ${changelogFile}")
+		}
+
+		File outputFile = generatedGithubReleaseNotes.get().asFile
+		outputFile.parentFile.mkdirs()
+		outputFile.setText(
+			githubReleaseHeaderFile.getText("UTF-8").trim() +
+			"\n\n" +
+			changelogFile.getText("UTF-8").trim() +
+			"\n",
+			"UTF-8"
+		)
+		println ">>> GitHub: Prepared release notes at ${outputFile}"
+	}
+}
+
+def githubRelease = tasks.register("githubRelease", Exec) {
+	group = "upload"
+	description = "Create a GitHub release with platform download links and the changelog"
+	dependsOn(prepareGithubReleaseNotes)
+	mustRunAfter(tasks.named("modrinth"))
+	mustRunAfter(tasks.named("curseforge"))
+
+	doFirst {
+		if (githubRepository == null || githubRepository.isBlank()) {
+			throw new GradleException("Set github_repository in gradle.properties before publishing to GitHub.")
+		}
+
+		File releaseNotesFile = generatedGithubReleaseNotes.get().asFile
+		if (!releaseNotesFile.isFile()) {
+			throw new GradleException("GitHub release notes file not found: ${releaseNotesFile}")
+		}
+
+		if (githubToken != null && !githubToken.isBlank()) {
+			environment "GH_TOKEN", githubToken
+		}
+
+		String releaseTag = "v${resolvedModVersion}"
+		commandLine(
+			"gh",
+			"release",
+			"create",
+			releaseTag,
+			"--repo",
+			githubRepository,
+			"--target",
+			"main",
+			"--title",
+			"Played ${resolvedModVersion} for Fabric ${project.minecraft_version}",
+			"--notes-file",
+			releaseNotesFile.absolutePath
+		)
+		println ">>> GitHub: Creating release ${releaseTag} in ${githubRepository}..."
+	}
+
+	doLast {
+		println ">>> GitHub: Successfully created release v${resolvedModVersion}!"
+	}
+}
+
+if (isReleaseRequest) {
+	tasks.named("curseforge") {
+		dependsOn(verifyModrinthRelease)
+		mustRunAfter(verifyModrinthRelease)
+	}
+	githubRelease.configure {
+		dependsOn(tasks.named("curseforge"))
+	}
+}
+
+def persistReleasedVersion = tasks.register("persistReleasedVersion") {
+	group = null
+	description = "Store the new version only after all release platforms succeeded"
+	dependsOn(githubRelease)
+
+	doLast {
+		if (pendingReleaseVersion == null) {
+			throw new GradleException("No pending release version. Run publishPatch or publishMinor.")
+		}
+
+		File propertiesFile = rootProject.file("gradle.properties")
+		String propertiesText = propertiesFile.getText("UTF-8")
+		def matcher = (propertiesText =~ /(?m)^(mod_version=)([^\r\n]+)$/)
+		if (!matcher.find()) {
+			throw new GradleException("mod_version is missing from ${propertiesFile}.")
+		}
+
+		String currentStoredVersion = matcher.group(2)
+		if (currentStoredVersion != storedModVersion && currentStoredVersion != pendingReleaseVersion) {
+			throw new GradleException("mod_version changed during publishing (${currentStoredVersion}); refusing to overwrite it.")
+		}
+
+		if (currentStoredVersion != pendingReleaseVersion) {
+			propertiesText = matcher.replaceFirst(java.util.regex.Matcher.quoteReplacement("mod_version=${pendingReleaseVersion}"))
+			propertiesFile.setText(propertiesText, "UTF-8")
+		}
+		println ">>> Stored successful release version ${pendingReleaseVersion} in gradle.properties."
+	}
+}
+
+tasks.register("publishPatch") {
+	group = "upload"
+	description = "Reliably upload to Modrinth, CurseForge, and GitHub, then store the bumped patch version"
+	dependsOn(persistReleasedVersion)
+	doLast {
+		println ""
+		println "============================================================="
+		println " \u2728 SUCCESSFULLY PUBLISHED PATCH UPDATE TO ALL PLATFORMS \u2728"
+		println "============================================================="
+		println ""
+	}
+}
+
+tasks.register("publishMinor") {
+	group = "upload"
+	description = "Reliably upload to Modrinth, CurseForge, and GitHub, then store the bumped minor version"
+	dependsOn(persistReleasedVersion)
+	doLast {
+		println ""
+		println "============================================================="
+		println " \u2728 SUCCESSFULLY PUBLISHED MINOR UPDATE TO ALL PLATFORMS \u2728"
+		println "============================================================="
+		println ""
+	}
+}

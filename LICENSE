@@ -1,0 +1,114 @@
+# Played Source-Available License
+
+Version 1.0
+
+Copyright (c) 2026 Zorblock. All rights reserved.
+
+This license applies to the Played mod, its source code, compiled binaries,
+assets, and documentation (collectively, the "Software"), except for third-party
+components that are distributed under their own licenses.
+
+This is a source-available license. It is not an open-source license.
+
+By exercising any permission granted by this license or by submitting a
+contribution, you agree to its terms.
+
+## 1. Private-use permission
+
+Subject to compliance with this license, Zorblock (the "Licensor") grants you a
+limited, worldwide, royalty-free, non-exclusive, non-transferable, and
+non-sublicensable license to:
+
+a. view and study the source code;
+b. download official copies of the Software;
+c. compile and run the Software for your own private, non-commercial use; and
+d. modify the Software for your own private, non-commercial use.
+
+You may make reasonable backup copies for your own private use. No ownership
+rights are transferred to you.
+
+## 2. Contributions
+
+You may create a GitHub fork solely to prepare and submit a contribution to the
+official repository at <https://github.com/Zorblock/Played>. Such a fork may not
+publish Releases, Packages, compiled binaries, or downloads, may not be promoted
+as an independent version of Played, and may not be used for any purpose other
+than contributing changes back to the official repository.
+
+You may publicly share changes only by submitting them as an issue, patch, or
+pull request to the official repository.
+
+By intentionally submitting a contribution, you represent that you have the
+right to provide it and grant the Licensor a perpetual, irrevocable, worldwide,
+royalty-free, fully paid, non-exclusive, transferable, and sublicensable license
+to use, reproduce, modify, create derivative works from, publicly display,
+publicly perform, distribute, publish, sublicense, relicense, and otherwise
+commercialize that contribution as part of or in connection with the Software.
+You retain copyright in your original contribution. The Licensor is not required
+to accept, use, publish, or credit any contribution.
+
+To the extent your contribution necessarily practices patent claims that you
+control, you also grant the Licensor a perpetual, irrevocable, worldwide,
+royalty-free, transferable, and sublicensable patent license to make, have made,
+use, offer for sale, sell, import, and otherwise exploit the contribution and the
+Software incorporating it.
+
+## 3. No redistribution or publication
+
+Except for the limited contribution permission in section 2, you may not,
+without prior written permission from the Licensor:
+
+a. publish, distribute, share, transmit, mirror, re-upload, or otherwise make
+   available the Software or any modified version, in source or binary form;
+b. create or distribute unofficial releases, builds, forks, ports, modpacks, or
+   derivative works containing any part of the Software;
+c. upload the Software or a modified version to GitHub, GitLab, Modrinth,
+   CurseForge, or any other website, repository, platform, or service;
+d. sell, rent, license, sublicense, monetize, or commercially exploit the
+   Software or any modified version;
+e. remove or alter copyright, license, attribution, or provenance notices; or
+f. represent an unofficial version as official or endorsed by the Licensor.
+
+You may link to an official download page controlled by the Licensor. Only the
+Licensor, or a party with the Licensor's prior written permission, may publish or
+distribute the Software.
+
+## 4. No trademark license
+
+This license does not grant permission to use the names "Played" or "Zorblock",
+or any associated logos, icons, branding, or trademarks, except as necessary to
+identify the Software when submitting a contribution to the official repository.
+
+## 5. Third-party components
+
+Third-party libraries, APIs, and other components included with or used by the
+Software remain subject to their respective licenses. This license grants no
+additional rights to those components and does not reduce rights granted by
+their respective licensors.
+
+## 6. Termination
+
+Your rights under this license terminate automatically if you violate any of its
+terms. Upon termination, you must stop using the Software and delete all copies
+and modified versions in your possession or control. Rights granted to the
+Licensor for contributions under section 2 survive termination.
+
+## 7. Disclaimer of warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. YOU USE THE SOFTWARE AT YOUR
+OWN RISK.
+
+## 8. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR WILL NOT BE
+LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM OR RELATED TO THE
+SOFTWARE OR ITS USE, WHETHER IN CONTRACT, TORT, OR OTHERWISE.
+
+## 9. Additional permission
+
+The Licensor may grant additional permissions or alternative licenses in a
+separate written agreement. Any failure to enforce a provision of this license
+does not waive the right to enforce it later. If any provision is unenforceable,
+the remaining provisions continue in effect to the extent permitted by law.

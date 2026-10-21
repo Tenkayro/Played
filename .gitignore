@@ -1,0 +1,84 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+
+# eclipse
+
+*.launch
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# macos
+
+*.DS_Store
+
+# fabric
+
+run/
+logs/
+
+# java
+
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
+# local tools and credentials
+
+.fake
+.env
+.env.*
+*.env
+*.env.*
+.envrc
+.direnv/
+!.env.example
+!*.env.example
+local.properties
+gradle-local.properties
+
+# secrets and private keys
+
+.secrets/
+secrets/
+credentials/
+secrets.*
+credentials.*
+*.secret
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+.npmrc
+.pypirc
+keystore.properties
+signing.properties
+
+.agents/
+.public/
+.modrinth/changelog.md
+deps.txt
