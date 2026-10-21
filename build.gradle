@@ -211,7 +211,6 @@ def validateRelease = tasks.register("validateRelease") {
 }
 
 def modrinthTask = tasks.named("modrinth", com.modrinth.minotaur.TaskModrinthUpload) {
-	dependsOn(tasks.named("clean"))
 	dependsOn(tasks.named("build"))
 	if (isReleaseRequest) {
 		dependsOn(validateRelease)
@@ -322,7 +321,6 @@ if (curseforgeProjectId == null || curseforgeProjectId.isBlank()) {
 } else {
 	tasks.register("curseforge", net.darkhax.curseforgegradle.TaskPublishCurseForge) {
 		description = "Build and upload this release to CurseForge"
-		dependsOn(tasks.named("clean"))
 		dependsOn(tasks.named("build"))
 
 		apiToken = curseforgeToken
