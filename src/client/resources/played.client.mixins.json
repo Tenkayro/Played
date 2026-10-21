@@ -8,6 +8,7 @@
 		"GameMenuScreenMixin",
 		"ManageServerScreenMixin",
 		"MultiplayerServerEntryMixin",
+		"PlayerTabOverlayMixin",
 		"ServerSelectionListMixin",
 		"TitleScreenMixin",
 		"WorldEntryMixin",

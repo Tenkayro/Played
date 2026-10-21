@@ -122,8 +122,23 @@ public class PlayedModMenu implements ModMenuApi {
 			.setTooltip(Component.literal("Configure the optional in-game playtime HUD"));
 		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show Playtime HUD"), PlayedConfig.shouldShowHudPlaytime())
 			.setDefaultValue(false)
-			.setTooltip(Component.literal("Show a small playtime display while playing"))
+			.setTooltip(Component.literal("Show playtime in a freely positioned overlay"))
 			.setSaveConsumer(PlayedConfig::setShowHudPlaytime)
+			.build());
+		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show in Action Bar"), PlayedConfig.shouldShowActionBarPlaytime())
+			.setDefaultValue(false)
+			.setTooltip(Component.literal("Show playtime above the hotbar"))
+			.setSaveConsumer(PlayedConfig::setShowActionBarPlaytime)
+			.build());
+		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show in Tab List"), PlayedConfig.shouldShowTabListPlaytime())
+			.setDefaultValue(false)
+			.setTooltip(Component.literal("Show playtime below the player list while holding Tab"))
+			.setSaveConsumer(PlayedConfig::setShowTabListPlaytime)
+			.build());
+		hud.add(entryBuilder.startBooleanToggle(Component.literal("Show as Scoreboard"), PlayedConfig.shouldShowScoreboardPlaytime())
+			.setDefaultValue(false)
+			.setTooltip(Component.literal("Show playtime in a compact sidebar on the right"))
+			.setSaveConsumer(PlayedConfig::setShowScoreboardPlaytime)
 			.build());
 		hud.add(entryBuilder.startBooleanToggle(Component.literal("HUD Background"), PlayedConfig.shouldShowHudBackground())
 			.setDefaultValue(false)

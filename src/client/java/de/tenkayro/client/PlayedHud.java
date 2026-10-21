@@ -5,11 +5,13 @@ import de.tenkayro.client.config.PlayedConfig;
 import java.util.Objects;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.NonNull;
 
 public final class PlayedHud {
 	private static final int PADDING = 3;
@@ -30,14 +32,27 @@ public final class PlayedHud {
 			Identifier.fromNamespaceAndPath(Played.MOD_ID, "playtime"),
 			PlayedHud::extractRenderState
 		);
+		HudElementRegistry.attachElementBefore(
+			VanillaHudElements.CHAT,
+			Identifier.fromNamespaceAndPath(Played.MOD_ID, "playtime_action_bar"),
+			PlayedHud::extractActionBar
+		);
+		HudElementRegistry.attachElementBefore(
+			VanillaHudElements.CHAT,
+			Identifier.fromNamespaceAndPath(Played.MOD_ID, "playtime_scoreboard"),
+			PlayedHud::extractScoreboard
+		);
+	}
+
+	private static boolean canRender(Minecraft minecraft) {
+		return minecraft.player != null
+			&& minecraft.level != null
+			&& minecraft.gui.screen() == null;
 	}
 
 	private static void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (!PlayedConfig.shouldShowHudPlaytime()
-			|| minecraft.player == null
-			|| minecraft.level == null
-			|| minecraft.gui.screen() != null) {
+		if (!PlayedConfig.shouldShowHudPlaytime() || !canRender(minecraft)) {
 			return;
 		}
 
@@ -80,7 +95,42 @@ public final class PlayedHud {
 		}
 	}
 
-	private static Component getText(long currentMillis) {
+	private static void extractActionBar(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (!PlayedConfig.shouldShowActionBarPlaytime() || !canRender(minecraft)) {
+			return;
+		}
+
+		@NonNull Component text = getDisplayText(minecraft);
+		int width = minecraft.font.width(text);
+		int x = (graphics.guiWidth() - width) / 2;
+		int y = Math.max(0, graphics.guiHeight() - 68);
+		graphics.text(minecraft.font, text, x, y, 0xFFFFFFFF, true);
+	}
+
+	private static void extractScoreboard(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (!PlayedConfig.shouldShowScoreboardPlaytime() || !canRender(minecraft)) {
+			return;
+		}
+
+		@NonNull Component title = Objects.requireNonNull(
+			Component.literal("Played").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+		);
+		@NonNull Component text = getDisplayText(minecraft);
+		int width = Math.max(minecraft.font.width(title), minecraft.font.width(text));
+		int x = Math.max(2, graphics.guiWidth() - width - 8);
+		int y = Math.max(2, graphics.guiHeight() / 2 - 12);
+		graphics.fill(x - 4, y - 3, graphics.guiWidth() - 2, y + 22, 0x80000000);
+		graphics.text(minecraft.font, title, x, y, 0xFFFFFFFF, true);
+		graphics.text(minecraft.font, text, x, y + 11, 0xFFFFFFFF, true);
+	}
+
+	public static @NonNull Component getDisplayText(Minecraft minecraft) {
+		return getText(PlaytimeTracker.getActivePlaytimeMillis(minecraft));
+	}
+
+	private static @NonNull Component getText(long currentMillis) {
 		long currentSecond = currentMillis / 1000L;
 		long sessionSecond = PlaytimeTracker.getSessionPlaytimeMillis() / 1000L;
 		long totalSecond = PlaytimeStorage.getAllTimeMillis() / 1000L;
@@ -100,6 +150,6 @@ public final class PlayedHud {
 			cachedText = Objects.requireNonNull(PlayedConfig.formatHudPlaytime(currentMillis), "text");
 		}
 
-		return cachedText;
+		return Objects.requireNonNull(cachedText, "text");
 	}
 }

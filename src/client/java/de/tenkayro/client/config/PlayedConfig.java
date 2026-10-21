@@ -23,6 +23,9 @@ public final class PlayedConfig {
 	private static final String KEY_SHOW_TOTAL_PLAYTIME = "show_total_playtime";
 	private static final String KEY_SHOW_INGAME_PLAYTIME = "show_ingame_playtime";
 	private static final String KEY_SHOW_HUD_PLAYTIME = "show_hud_playtime";
+	private static final String KEY_SHOW_ACTION_BAR_PLAYTIME = "show_action_bar_playtime";
+	private static final String KEY_SHOW_TAB_LIST_PLAYTIME = "show_tab_list_playtime";
+	private static final String KEY_SHOW_SCOREBOARD_PLAYTIME = "show_scoreboard_playtime";
 	private static final String KEY_SHOW_HUD_BACKGROUND = "show_hud_background";
 	private static final String KEY_HUD_POSITION = "hud_position";
 	private static final String KEY_HUD_TEMPLATE = "hud_template";
@@ -49,6 +52,9 @@ public final class PlayedConfig {
 	private static boolean showTotalPlaytime = true;
 	private static boolean showIngamePlaytime = false;
 	private static boolean showHudPlaytime = false;
+	private static boolean showActionBarPlaytime = false;
+	private static boolean showTabListPlaytime = false;
+	private static boolean showScoreboardPlaytime = false;
 	private static boolean showHudBackground = false;
 	private static HudPosition hudPosition = HudPosition.TOP_LEFT;
 	private static String hudTemplate = "<gradient:#a855f7:#ec4899>\u23F1 {current}</gradient>";
@@ -118,6 +124,9 @@ public final class PlayedConfig {
 			showTotalPlaytime = readBoolean(properties, KEY_SHOW_TOTAL_PLAYTIME, showTotalPlaytime);
 			showIngamePlaytime = readBoolean(properties, KEY_SHOW_INGAME_PLAYTIME, showIngamePlaytime);
 			showHudPlaytime = readBoolean(properties, KEY_SHOW_HUD_PLAYTIME, showHudPlaytime);
+			showActionBarPlaytime = readBoolean(properties, KEY_SHOW_ACTION_BAR_PLAYTIME, showActionBarPlaytime);
+			showTabListPlaytime = readBoolean(properties, KEY_SHOW_TAB_LIST_PLAYTIME, showTabListPlaytime);
+			showScoreboardPlaytime = readBoolean(properties, KEY_SHOW_SCOREBOARD_PLAYTIME, showScoreboardPlaytime);
 			showHudBackground = readBoolean(properties, KEY_SHOW_HUD_BACKGROUND, showHudBackground);
 			hudPosition = readHudPosition(properties, KEY_HUD_POSITION, hudPosition);
 			hudTemplate = properties.getProperty(KEY_HUD_TEMPLATE, hudTemplate);
@@ -171,6 +180,9 @@ public final class PlayedConfig {
 		properties.setProperty(KEY_SHOW_TOTAL_PLAYTIME, Boolean.toString(showTotalPlaytime));
 		properties.setProperty(KEY_SHOW_INGAME_PLAYTIME, Boolean.toString(showIngamePlaytime));
 		properties.setProperty(KEY_SHOW_HUD_PLAYTIME, Boolean.toString(showHudPlaytime));
+		properties.setProperty(KEY_SHOW_ACTION_BAR_PLAYTIME, Boolean.toString(showActionBarPlaytime));
+		properties.setProperty(KEY_SHOW_TAB_LIST_PLAYTIME, Boolean.toString(showTabListPlaytime));
+		properties.setProperty(KEY_SHOW_SCOREBOARD_PLAYTIME, Boolean.toString(showScoreboardPlaytime));
 		properties.setProperty(KEY_SHOW_HUD_BACKGROUND, Boolean.toString(showHudBackground));
 		properties.setProperty(KEY_HUD_POSITION, hudPosition.name());
 		properties.setProperty(KEY_HUD_TEMPLATE, hudTemplate);
@@ -206,6 +218,9 @@ public final class PlayedConfig {
 		showTotalPlaytime = true;
 		showIngamePlaytime = false;
 		showHudPlaytime = false;
+		showActionBarPlaytime = false;
+		showTabListPlaytime = false;
+		showScoreboardPlaytime = false;
 		showHudBackground = false;
 		hudPosition = HudPosition.TOP_LEFT;
 		hudTemplate = "<gradient:#a855f7:#ec4899>\u23F1 {current}</gradient>";
@@ -287,6 +302,33 @@ public final class PlayedConfig {
 
 	public static void setShowHudPlaytime(boolean showHudPlaytime) {
 		PlayedConfig.showHudPlaytime = showHudPlaytime;
+		save();
+	}
+
+	public static boolean shouldShowActionBarPlaytime() {
+		return showActionBarPlaytime;
+	}
+
+	public static void setShowActionBarPlaytime(boolean showActionBarPlaytime) {
+		PlayedConfig.showActionBarPlaytime = showActionBarPlaytime;
+		save();
+	}
+
+	public static boolean shouldShowTabListPlaytime() {
+		return showTabListPlaytime;
+	}
+
+	public static void setShowTabListPlaytime(boolean showTabListPlaytime) {
+		PlayedConfig.showTabListPlaytime = showTabListPlaytime;
+		save();
+	}
+
+	public static boolean shouldShowScoreboardPlaytime() {
+		return showScoreboardPlaytime;
+	}
+
+	public static void setShowScoreboardPlaytime(boolean showScoreboardPlaytime) {
+		PlayedConfig.showScoreboardPlaytime = showScoreboardPlaytime;
 		save();
 	}
 
