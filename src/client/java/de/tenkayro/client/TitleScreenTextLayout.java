@@ -1,4 +1,4 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
 import java.util.ArrayList;
 import java.util.List;

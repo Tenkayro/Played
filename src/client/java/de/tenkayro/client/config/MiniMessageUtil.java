@@ -1,4 +1,4 @@
-package de.zorblock.client.config;
+package de.tenkayro.client.config;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;

@@ -1,6 +1,6 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.client.config.PlayedConfig;
 import java.util.Objects;
 import net.minecraft.client.gui.Font;
 

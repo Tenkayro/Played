@@ -4,6 +4,13 @@
   "private": true,
   "description": "Interactive release tooling for Played",
   "scripts": {
+    "build": "gradlew.bat clean build",
+    "client": "gradlew.bat runClient",
+    "server": "gradlew.bat runServer",
+    "test": "gradlew.bat test",
+    "clean": "gradlew.bat clean",
+    "tasks": "gradlew.bat tasks --all",
+    "sources": "gradlew.bat genSources",
     "release": "node scripts/release.mjs"
   },
   "dependencies": {

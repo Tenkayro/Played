@@ -5,19 +5,19 @@
 	"name": "Played",
 	"description": "Tracks local playtime for singleplayer worlds and multiplayer servers, shows total playtime, and adds an optional Mod Menu config screen.",
 	"authors": [
-		"Zorblock"
+		"Tenkayro"
 	],
 	"contact": {
-		"homepage": "https://zorblock.de",
-		"sources": "https://github.com/Zorblock/Played",
-		"issues": "https://github.com/Zorblock/Played/issues"
+		"homepage": "https://tenkayro.de",
+		"sources": "https://github.com/Tenkayro/Played",
+		"issues": "https://github.com/Tenkayro/Played/issues"
 	},
 	"custom": {
 		"modmenu": {
 			"update_checker": true,
 			"links": {
 				"modmenu.modrinth": "https://modrinth.com/mod/played",
-				"modmenu.discord": "https://zorblock.de/discord"
+				"modmenu.discord": "https://tenkayro.de/discord"
 			}
 		}
 	},
@@ -26,13 +26,13 @@
 	"environment": "client",
 	"entrypoints": {
 		"main": [
-			"de.zorblock.Played"
+			"de.tenkayro.Played"
 		],
 		"client": [
-			"de.zorblock.client.PlayedClient"
+			"de.tenkayro.client.PlayedClient"
 		],
 		"modmenu": [
-			"de.zorblock.client.config.PlayedModMenu"
+			"de.tenkayro.client.config.PlayedModMenu"
 		]
 	},
 	"mixins": [

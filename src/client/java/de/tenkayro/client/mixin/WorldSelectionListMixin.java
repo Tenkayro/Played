@@ -1,7 +1,7 @@
-package de.zorblock.client.mixin;
+package de.tenkayro.client.mixin;
 
-import de.zorblock.client.PlaytimeStorage;
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.client.PlaytimeStorage;
+import de.tenkayro.client.config.PlayedConfig;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

@@ -2,7 +2,7 @@
 
 Version 1.0
 
-Copyright (c) 2026 Zorblock. All rights reserved.
+Copyright (c) 2026 Tenkayro. All rights reserved.
 
 This license applies to the Played mod, its source code, compiled binaries,
 assets, and documentation (collectively, the "Software"), except for third-party
@@ -15,7 +15,7 @@ contribution, you agree to its terms.
 
 ## 1. Private-use permission
 
-Subject to compliance with this license, Zorblock (the "Licensor") grants you a
+Subject to compliance with this license, Tenkayro (the "Licensor") grants you a
 limited, worldwide, royalty-free, non-exclusive, non-transferable, and
 non-sublicensable license to:
 
@@ -30,7 +30,7 @@ rights are transferred to you.
 ## 2. Contributions
 
 You may create a GitHub fork solely to prepare and submit a contribution to the
-official repository at <https://github.com/Zorblock/Played>. Such a fork may not
+official repository at <https://github.com/Tenkayro/Played>. Such a fork may not
 publish Releases, Packages, compiled binaries, or downloads, may not be promoted
 as an independent version of Played, and may not be used for any purpose other
 than contributing changes back to the official repository.
@@ -75,7 +75,7 @@ distribute the Software.
 
 ## 4. No trademark license
 
-This license does not grant permission to use the names "Played" or "Zorblock",
+This license does not grant permission to use the names "Played" or "Tenkayro",
 or any associated logos, icons, branding, or trademarks, except as necessary to
 identify the Software when submitting a contribution to the official repository.
 

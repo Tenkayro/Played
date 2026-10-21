@@ -1,6 +1,6 @@
-package de.zorblock.client.mixin;
+package de.tenkayro.client.mixin;
 
-import de.zorblock.client.TitleScreenTextLayout;
+import de.tenkayro.client.TitleScreenTextLayout;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;

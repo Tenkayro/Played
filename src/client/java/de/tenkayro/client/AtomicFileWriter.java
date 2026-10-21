@@ -1,4 +1,4 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;

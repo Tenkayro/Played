@@ -1,6 +1,6 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
-import de.zorblock.Played;
+import de.tenkayro.Played;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -62,9 +62,9 @@ public final class PlaytimeStorage {
 					Files.deleteIfExists(oldCentralDirectory.getParent());
 				} catch (IOException ignored) {
 				}
-				de.zorblock.Played.LOGGER.info("Migrated playtime storage from {} to {}", oldCentralDirectory, centralDirectory);
+				de.tenkayro.Played.LOGGER.info("Migrated playtime storage from {} to {}", oldCentralDirectory, centralDirectory);
 			} catch (IOException exception) {
-				de.zorblock.Played.LOGGER.warn("Failed to migrate playtime storage", exception);
+				de.tenkayro.Played.LOGGER.warn("Failed to migrate playtime storage", exception);
 			}
 		}
 		allTimeFile = centralDirectory.resolve(ALL_TIME_FILE_NAME);

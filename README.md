@@ -7,7 +7,7 @@ Played is a lightweight Fabric mod that tracks local playtime for singleplayer w
 - [Modrinth](https://modrinth.com/mod/played/versions)
 - [CurseForge](https://www.curseforge.com/minecraft/mc-mods/played/files)
 
-Only downloads published by Zorblock through official channels are authorized distributions of Played.
+Only downloads published by Tenkayro through official channels are authorized distributions of Played.
 
 ## Source availability and contributions
 
@@ -17,4 +17,4 @@ Contributions are welcome through issues and pull requests. See [CONTRIBUTING.md
 
 ## License
 
-Played is licensed under the custom [Played Source-Available License 1.0](LICENSE). You may view the source and modify it privately, but you may not publish or distribute the original mod, modified versions, or compiled builds without prior written permission from Zorblock.
+Played is licensed under the custom [Played Source-Available License 1.0](LICENSE). You may view the source and modify it privately, but you may not publish or distribute the original mod, modified versions, or compiled builds without prior written permission from Tenkayro.

@@ -2,7 +2,7 @@
 
 Contributions are welcome through the official repository:
 
-<https://github.com/Zorblock/Played>
+<https://github.com/Tenkayro/Played>
 
 ## Contribution process
 
@@ -15,6 +15,6 @@ Contributions are welcome through the official repository:
 
 By intentionally submitting code, documentation, assets, or another contribution, you confirm that you have the right to provide it and agree to the contribution terms in section 2 of the [Played Source-Available License](LICENSE).
 
-Those terms allow Zorblock to use, modify, publish, distribute, sublicense, and relicense accepted contributions as part of Played. You retain copyright in your original contribution.
+Those terms allow Tenkayro to use, modify, publish, distribute, sublicense, and relicense accepted contributions as part of Played. You retain copyright in your original contribution.
 
 Do not submit material copied from another project unless its license permits inclusion and you clearly identify its source and license.

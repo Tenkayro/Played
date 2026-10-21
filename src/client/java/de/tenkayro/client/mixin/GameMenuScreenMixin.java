@@ -1,8 +1,8 @@
-package de.zorblock.client.mixin;
+package de.tenkayro.client.mixin;
 
-import de.zorblock.client.PlaytimeTracker;
-import de.zorblock.client.TitleScreenTextLayout;
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.client.PlaytimeTracker;
+import de.tenkayro.client.TitleScreenTextLayout;
+import de.tenkayro.client.config.PlayedConfig;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;

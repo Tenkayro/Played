@@ -1,7 +1,7 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
-import de.zorblock.Played;
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.Played;
+import de.tenkayro.client.config.PlayedConfig;
 import java.util.Objects;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;

@@ -1,15 +1,14 @@
-package de.zorblock.client.mixin;
+package de.tenkayro.client.mixin;
 
-import de.zorblock.client.PlaytimeStorage;
-import de.zorblock.client.ResetPlaytimeIconButton;
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.client.PlaytimeStorage;
+import de.tenkayro.client.ResetPlaytimeIconButton;
+import de.tenkayro.client.config.PlayedConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.ManageServerScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.worldselection.EditWorldScreen;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.storage.LevelResource;
-import net.minecraft.world.level.storage.LevelStorageSource;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,21 +16,21 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(EditWorldScreen.class)
-public abstract class EditWorldScreenMixin extends Screen {
+@Mixin(ManageServerScreen.class)
+public abstract class ManageServerScreenMixin extends Screen {
 	private static final int PLAYED_ICON_MARGIN = 4;
 
 	@Shadow
 	@Final
-	private LevelStorageSource.LevelStorageAccess levelAccess;
+	private ServerData serverData;
 
-	protected EditWorldScreenMixin(Component title) {
+	protected ManageServerScreenMixin(Component title) {
 		super(title);
 	}
 
 	@Inject(method = "init", at = @At("RETURN"))
 	private void played$addResetPlaytimeButton(CallbackInfo info) {
-		if (!PlayedConfig.shouldShowEditWorldResetButton()) {
+		if (!PlayedConfig.shouldShowEditServerResetButton() || this.serverData.ip.isBlank()) {
 			return;
 		}
 
@@ -45,9 +44,9 @@ public abstract class EditWorldScreenMixin extends Screen {
 		Screen currentScreen = this;
 		minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
 			if (confirmed) {
-				PlaytimeStorage.resetWorldPlaytime(this.levelAccess.getLevelPath(LevelResource.ROOT));
+				PlaytimeStorage.resetServerPlaytime(this.serverData.name, this.serverData.ip);
 			}
 			minecraft.gui.setScreen(currentScreen);
-		}, Component.literal("Reset Playtime"), Component.literal("Reset the saved playtime for this world?"), Component.literal("Reset"), Component.literal("Cancel")));
+		}, Component.literal("Reset Playtime"), Component.literal("Reset the saved playtime for this server?"), Component.literal("Reset"), Component.literal("Cancel")));
 	}
 }

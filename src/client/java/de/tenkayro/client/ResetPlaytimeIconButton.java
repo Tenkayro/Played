@@ -1,4 +1,4 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
 import java.util.Objects;
 import net.minecraft.client.Minecraft;

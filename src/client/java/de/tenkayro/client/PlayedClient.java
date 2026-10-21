@@ -1,6 +1,6 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
-import de.zorblock.client.config.PlayedConfig;
+import de.tenkayro.client.config.PlayedConfig;
 import net.fabricmc.api.ClientModInitializer;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;

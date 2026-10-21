@@ -1,10 +1,10 @@
-package de.zorblock.client.config;
+package de.tenkayro.client.config;
 
-import de.zorblock.Played;
-import de.zorblock.client.AtomicFileWriter;
+import de.tenkayro.Played;
+import de.tenkayro.client.AtomicFileWriter;
 import java.io.ByteArrayOutputStream;
-import de.zorblock.client.PlaytimeStorage;
-import de.zorblock.client.PlaytimeTracker;
+import de.tenkayro.client.PlaytimeStorage;
+import de.tenkayro.client.PlaytimeTracker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -82,9 +82,9 @@ public final class PlayedConfig {
 					Files.deleteIfExists(oldConfigDirectory.getParent());
 				} catch (IOException ignored) {
 				}
-				de.zorblock.Played.LOGGER.info("Migrated config from {} to {}", oldConfigDirectory, configDirectory);
+				de.tenkayro.Played.LOGGER.info("Migrated config from {} to {}", oldConfigDirectory, configDirectory);
 			} catch (IOException exception) {
-				de.zorblock.Played.LOGGER.warn("Failed to migrate config", exception);
+				de.tenkayro.Played.LOGGER.warn("Failed to migrate config", exception);
 			}
 		}
 

@@ -253,7 +253,7 @@ def findPublishedModrinthVersion = {
 	connection.setConnectTimeout(15_000)
 	connection.setReadTimeout(30_000)
 	connection.setRequestProperty("Accept", "application/json")
-	connection.setRequestProperty("User-Agent", "Zorblock/Played Gradle release verification")
+	connection.setRequestProperty("User-Agent", "Tenkayro/Played Gradle release verification")
 
 	try {
 		int status = connection.responseCode

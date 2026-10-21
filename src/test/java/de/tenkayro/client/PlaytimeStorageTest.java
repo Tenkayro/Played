@@ -1,4 +1,4 @@
-package de.zorblock.client;
+package de.tenkayro.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
