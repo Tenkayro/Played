@@ -92,6 +92,8 @@ def curseforgeToken = System.getenv("CURSEFORGE_TOKEN") ?: dotEnv["CURSEFORGE_TO
 def curseforgeProjectId = System.getenv("CURSEFORGE_PROJECT_ID") ?: dotEnv["CURSEFORGE_PROJECT_ID"] ?: project.findProperty("curseforge_project_id")?.toString()
 def githubToken = System.getenv("GH_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: dotEnv["GH_TOKEN"] ?: dotEnv["GITHUB_TOKEN"]
 def githubRepository = project.findProperty("github_repository")?.toString()
+def githubCliFile = new File(System.getenv("ProgramFiles") ?: "C:/Program Files", "GitHub CLI/gh.exe")
+def githubCliExecutable = githubCliFile.isFile() ? githubCliFile.absolutePath : "gh"
 def modrinthVersionNumber = "mc${project.minecraft_version}-${project.mod_version}-fabric"
 def modrinthVersionName = "Played ${project.mod_version} for Fabric ${project.minecraft_version}"
 
@@ -190,53 +192,21 @@ tasks.named("build") {
 
 def validateRelease = tasks.register("validateRelease") {
 	group = null
-	description = "Validate the local release configuration before uploading"
+	description = "Validate the Modrinth release configuration before uploading"
 
 	doLast {
 		def errors = []
 		if (modrinthToken == null || modrinthToken.isBlank()) {
 			errors << "Set MODRINTH_TOKEN in your environment or .env."
 		}
-		if (curseforgeToken == null || curseforgeToken.isBlank()) {
-			errors << "Set CURSEFORGE_TOKEN in your environment or .env."
-		}
-		if (curseforgeProjectId == null || curseforgeProjectId.isBlank()) {
-			errors << "Set curseforge_project_id in gradle.properties."
-		}
-		if (githubRepository == null || githubRepository.isBlank()) {
-			errors << "Set github_repository in gradle.properties."
-		}
 		if (!rootProject.file(".public/changelog.md").isFile()) {
 			errors << "Create .public/changelog.md."
-		}
-		if (!rootProject.file(".public/description.md").isFile()) {
-			errors << "Create .public/description.md."
-		}
-		if (!rootProject.file(".public/release-header.md").isFile()) {
-			errors << "Create .public/release-header.md."
-		}
-		try {
-			def processBuilder = new ProcessBuilder("gh", "auth", "status", "--hostname", "github.com")
-			processBuilder.redirectErrorStream(true)
-			if (githubToken != null && !githubToken.isBlank()) {
-				processBuilder.environment().put("GH_TOKEN", githubToken)
-			}
-			def process = processBuilder.start()
-			boolean finished = process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
-			if (!finished) {
-				process.destroyForcibly()
-				errors << "GitHub CLI authentication check timed out."
-			} else if (process.exitValue() != 0) {
-				errors << "Authenticate GitHub CLI first with 'gh auth login'."
-			}
-		} catch (Exception ignored) {
-			errors << "Install GitHub CLI (gh) and authenticate it before publishing."
 		}
 
 		if (!errors.isEmpty()) {
 			throw new GradleException("Release configuration is incomplete:\n- " + errors.join("\n- "))
 		}
-		println ">>> Release configuration validated for version ${resolvedModVersion}."
+		println ">>> Modrinth release configuration validated for version ${resolvedModVersion}."
 	}
 }
 
@@ -372,6 +342,9 @@ if (curseforgeProjectId == null || curseforgeProjectId.isBlank()) {
 			if (curseforgeToken == null || curseforgeToken.isBlank()) {
 				throw new GradleException("Set CURSEFORGE_TOKEN in your environment or .env before publishing to CurseForge.")
 			}
+			if (!rootProject.file(".public/changelog.md").isFile()) {
+				throw new GradleException("Create .public/changelog.md before publishing to CurseForge.")
+			}
 			mainFile.displayName = "Played ${project.mod_version} for Fabric ${project.minecraft_version}"
 			println ">>> CurseForge: Starting upload for version ${project.mod_version}..."
 		}
@@ -486,6 +459,30 @@ def githubRelease = tasks.register("githubRelease", Exec) {
 		if (githubRepository == null || githubRepository.isBlank()) {
 			throw new GradleException("Set github_repository in gradle.properties before publishing to GitHub.")
 		}
+		if (!githubReleaseHeaderFile.isFile() || !changelogFile.isFile()) {
+			throw new GradleException("Create .public/release-header.md and .public/changelog.md before publishing to GitHub.")
+		}
+
+		try {
+			def authCheck = new ProcessBuilder(githubCliExecutable, "auth", "status", "--hostname", "github.com")
+			authCheck.redirectErrorStream(true)
+			if (githubToken != null && !githubToken.isBlank()) {
+				authCheck.environment().put("GH_TOKEN", githubToken)
+			}
+			def authProcess = authCheck.start()
+			boolean finished = authProcess.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
+			if (!finished) {
+				authProcess.destroyForcibly()
+				throw new GradleException("GitHub CLI authentication check timed out.")
+			}
+			if (authProcess.exitValue() != 0) {
+				throw new GradleException("Authenticate GitHub CLI first with 'gh auth login'.")
+			}
+		} catch (GradleException exception) {
+			throw exception
+		} catch (Exception exception) {
+			throw new GradleException("GitHub CLI could not be started at '${githubCliExecutable}'.", exception)
+		}
 
 		File releaseNotesFile = generatedGithubReleaseNotes.get().asFile
 		if (!releaseNotesFile.isFile()) {
@@ -498,7 +495,7 @@ def githubRelease = tasks.register("githubRelease", Exec) {
 
 		String releaseTag = "v${resolvedModVersion}"
 		commandLine(
-			"gh",
+			githubCliExecutable,
 			"release",
 			"create",
 			releaseTag,
