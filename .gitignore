@@ -82,3 +82,5 @@ signing.properties
 .public/
 .modrinth/changelog.md
 deps.txt
+
+node_modules

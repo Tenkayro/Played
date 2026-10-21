@@ -1,0 +1,12 @@
+{
+  "name": "played-release-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive release tooling for Played",
+  "scripts": {
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0"
+  }
+}

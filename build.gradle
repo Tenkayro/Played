@@ -10,7 +10,9 @@ def isDryRun = gradle.startParameter.dryRun
 def isHelpRequest = startTasks.any { it == "help" || it.endsWith(":help") }
 def isPatchRequest = startTasks.any { it == "publishPatch" || it.endsWith(":publishPatch") }
 def isMinorRequest = startTasks.any { it == "publishMinor" || it.endsWith(":publishMinor") }
-def isReleaseRequest = isPatchRequest || isMinorRequest
+def requestedReleaseVersion = project.findProperty("releaseVersion")?.toString()?.trim()
+def isLegacyReleaseRequest = isPatchRequest || isMinorRequest
+def isReleaseRequest = isLegacyReleaseRequest || requestedReleaseVersion
 def shouldPrepareReleaseVersion = isReleaseRequest && !isDryRun && !isHelpRequest
 def storedModVersion = project.mod_version.toString()
 def pendingReleaseVersion = null
@@ -20,26 +22,35 @@ if (isPatchRequest && isMinorRequest) {
 }
 
 if (shouldPrepareReleaseVersion) {
-	def versionMatcher = storedModVersion =~ /^(\d+)\.(\d+)\.(\d+)(.*)$/
-	if (!versionMatcher.matches()) {
-		throw new GradleException("Cannot auto-bump invalid mod_version '${storedModVersion}'.")
-	}
-
-	def major = versionMatcher.group(1)
-	def minor = versionMatcher.group(2).toInteger()
-	def patch = versionMatcher.group(3).toInteger()
-	def suffix = versionMatcher.group(4)
-
-	if (isPatchRequest) {
-		patch += 1
+	if (requestedReleaseVersion) {
+		if (!(requestedReleaseVersion ==~ /\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/)) {
+			throw new GradleException("Invalid -PreleaseVersion '${requestedReleaseVersion}'. Use semantic versioning, for example 1.2.3.")
+		}
+		pendingReleaseVersion = requestedReleaseVersion
+		project.ext.mod_version = pendingReleaseVersion
+		println ">>> Preparing release version ${pendingReleaseVersion}; gradle.properties will be updated only after every selected target succeeds. <<<"
 	} else {
-		minor += 1
-		patch = 0
-	}
+		def versionMatcher = storedModVersion =~ /^(\d+)\.(\d+)\.(\d+)(.*)$/
+		if (!versionMatcher.matches()) {
+			throw new GradleException("Cannot auto-bump invalid mod_version '${storedModVersion}'.")
+		}
 
-	pendingReleaseVersion = "${major}.${minor}.${patch}${suffix}"
-	project.ext.mod_version = pendingReleaseVersion
-	println ">>> Preparing release version ${pendingReleaseVersion}; gradle.properties will be updated only after every platform succeeds. <<<"
+		def major = versionMatcher.group(1)
+		def minor = versionMatcher.group(2).toInteger()
+		def patch = versionMatcher.group(3).toInteger()
+		def suffix = versionMatcher.group(4)
+
+		if (isPatchRequest) {
+			patch += 1
+		} else {
+			minor += 1
+			patch = 0
+		}
+
+		pendingReleaseVersion = "${major}.${minor}.${patch}${suffix}"
+		project.ext.mod_version = pendingReleaseVersion
+		println ">>> Preparing release version ${pendingReleaseVersion}; gradle.properties will be updated only after every platform succeeds. <<<"
+	}
 }
 
 version = project.mod_version
@@ -505,7 +516,7 @@ def githubRelease = tasks.register("githubRelease", Exec) {
 	}
 }
 
-if (isReleaseRequest) {
+if (isLegacyReleaseRequest) {
 	tasks.named("curseforge") {
 		dependsOn(verifyModrinthRelease)
 		mustRunAfter(verifyModrinthRelease)
@@ -518,7 +529,9 @@ if (isReleaseRequest) {
 def persistReleasedVersion = tasks.register("persistReleasedVersion") {
 	group = null
 	description = "Store the new version only after all release platforms succeeded"
-	dependsOn(githubRelease)
+	if (isLegacyReleaseRequest) {
+		dependsOn(githubRelease)
+	}
 
 	doLast {
 		if (pendingReleaseVersion == null) {
