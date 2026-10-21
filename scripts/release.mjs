@@ -10,8 +10,8 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +19,46 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const isWindows = process.platform === "win32";
 const gradleCommand = join(root, isWindows ? "gradlew.bat" : "gradlew");
 const semverPattern = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+let activeLogDirectory = null;
+let activeReleaseLog = null;
+
+function timestamp() {
+  return new Date().toISOString();
+}
+
+function fileTimestamp() {
+  return timestamp().replaceAll(":", "-").replaceAll(".", "-");
+}
+
+function slug(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "");
+}
+
+function appendReleaseLog(message) {
+  if (activeReleaseLog) appendFileSync(activeReleaseLog, message, "utf8");
+}
+
+function initializeReleaseLog(details) {
+  activeLogDirectory = join(root, ".logs", "releases", `${fileTimestamp()}_v${details.version}`);
+  mkdirSync(activeLogDirectory, { recursive: true });
+  activeReleaseLog = join(activeLogDirectory, "release.log");
+  const metadata = {
+    startedAt: timestamp(),
+    ...details,
+    cwd: root,
+    platform: `${process.platform} ${process.arch}`,
+    node: process.version,
+    javaHome: details.env.JAVA_HOME || null,
+    credentialsPresent: {
+      modrinth: Boolean(details.env.MODRINTH_TOKEN),
+      curseforge: Boolean(details.env.CURSEFORGE_TOKEN),
+      github: Boolean(details.env.GH_TOKEN || details.env.GITHUB_TOKEN),
+    },
+  };
+  delete metadata.env;
+  writeFileSync(join(activeLogDirectory, "release.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
+  writeFileSync(activeReleaseLog, `[${metadata.startedAt}] Release started\n${JSON.stringify(metadata, null, 2)}\n\n`, "utf8");
+}
 
 function stop(message = "Release cancelled.") {
   cancel(message);
@@ -114,10 +154,28 @@ function releaseEnvironment() {
   return env;
 }
 
-function run(command, args, label, env, dryRun = false) {
+async function run(command, args, label, env, dryRun = false) {
   const rendered = [command, ...args].join(" ");
+  const startedAt = timestamp();
+  const started = Date.now();
+  const taskLog = activeLogDirectory
+    ? join(activeLogDirectory, `${String(run.sequence++).padStart(2, "0")}-${slug(label)}.log`)
+    : null;
+  const header = [
+    `[${startedAt}] ${label}`,
+    `Command: ${rendered}`,
+    `Working directory: ${root}`,
+    `JAVA_HOME: ${env.JAVA_HOME || "<not set>"}`,
+    `Mode: ${dryRun ? "dry-run" : "execute"}`,
+    "",
+  ].join("\n");
+  if (taskLog) writeFileSync(taskLog, header, "utf8");
+  appendReleaseLog(header);
   if (dryRun) {
     note(rendered, label);
+    const ending = `[${timestamp()}] SKIPPED (dry run)\n\n`;
+    if (taskLog) appendFileSync(taskLog, ending, "utf8");
+    appendReleaseLog(ending);
     return;
   }
   const progress = spinner();
@@ -126,21 +184,40 @@ function run(command, args, label, env, dryRun = false) {
   const shellCommand = [command, ...args]
     .map((arg) => `"${String(arg).replaceAll('"', '""')}"`)
     .join(" ");
-  const result = spawnSync(useWindowsShell ? shellCommand : command, useWindowsShell ? [] : args, {
-    cwd: root,
-    env,
-    stdio: "inherit",
-    shell: useWindowsShell,
+  const result = await new Promise((resolveRun) => {
+    const child = spawn(useWindowsShell ? shellCommand : command, useWindowsShell ? [] : args, {
+      cwd: root,
+      env,
+      stdio: ["inherit", "pipe", "pipe"],
+      shell: useWindowsShell,
+    });
+    let spawnError = null;
+    const capture = (stream, terminal) => stream.on("data", (chunk) => {
+      terminal.write(chunk);
+      if (taskLog) appendFileSync(taskLog, chunk);
+      appendReleaseLog(chunk);
+    });
+    capture(child.stdout, process.stdout);
+    capture(child.stderr, process.stderr);
+    child.on("error", (error) => { spawnError = error; });
+    child.on("close", (status, signal) => resolveRun({ status, signal, error: spawnError }));
   });
+  const durationMs = Date.now() - started;
+  const ending = `\n[${timestamp()}] Exit code: ${result.status ?? "none"}; signal: ${result.signal || "none"}; duration: ${durationMs} ms\n\n`;
+  if (taskLog) appendFileSync(taskLog, ending, "utf8");
+  appendReleaseLog(ending);
   if (result.error || result.status !== 0) {
     progress.stop(`${label} failed`);
-    throw result.error || new Error(`${label} exited with code ${result.status}.`);
+    const error = result.error || new Error(`${label} exited with code ${result.status}. See ${taskLog}.`);
+    error.taskLog = taskLog;
+    throw error;
   }
   progress.stop(`${label} completed`);
 }
+run.sequence = 1;
 
-function runGradle(tasks, version, label, env, dryRun) {
-  run(
+async function runGradle(tasks, version, label, env, dryRun) {
+  await run(
     gradleCommand,
     [...tasks, `-PreleaseVersion=${version}`, "--console=plain"],
     label,
@@ -259,33 +336,45 @@ async function main() {
   );
   if (!approved) stop();
 
+	initializeReleaseLog({
+		version,
+		previousVersion: currentVersion,
+		minecraftVersion,
+		targets,
+		dryRun,
+		env,
+	});
+	note(activeLogDirectory, "Release logs");
+
   if (!dryRun && releaseNotes) {
     mkdirSync(dirname(changelogPath), { recursive: true });
     writeFileSync(changelogPath, `## Changes\n\n- ${releaseNotes}\n`, "utf8");
   }
   if (!dryRun) validateSelection(targets, env, properties);
   if (publishTargets.length) {
-    runGradle(["clean", "build"], version, "Build and test", env, dryRun);
+    await runGradle(["clean", "build"], version, "Build and test", env, dryRun);
   }
   if (targets.includes("description")) {
-    runGradle(["modrinthSyncBody"], version, "Sync Modrinth description", env, dryRun);
+    await runGradle(["modrinthSyncBody"], version, "Sync Modrinth description", env, dryRun);
   }
   if (targets.includes("modrinth")) {
-    runGradle(["verifyModrinthRelease"], version, "Publish to Modrinth", env, dryRun);
+    await runGradle(["verifyModrinthRelease"], version, "Publish to Modrinth", env, dryRun);
   }
   if (targets.includes("curseforge")) {
-    runGradle(["curseforge"], version, "Publish to CurseForge", env, dryRun);
+    await runGradle(["curseforge"], version, "Publish to CurseForge", env, dryRun);
   }
   if (targets.includes("github")) {
-    runGradle(["githubRelease"], version, "Create GitHub release", env, dryRun);
+    await runGradle(["githubRelease"], version, "Create GitHub release", env, dryRun);
   }
   if (publishTargets.length) {
-    runGradle(["persistReleasedVersion"], version, "Store released version", env, dryRun);
+    await runGradle(["persistReleasedVersion"], version, "Store released version", env, dryRun);
   }
+	appendReleaseLog(`[${timestamp()}] Release completed successfully.\n`);
   outro(dryRun ? "Dry run finished. Nothing was changed." : `Played ${version} released successfully.`);
 }
 
 main().catch((error) => {
+	appendReleaseLog(`[${timestamp()}] RELEASE FAILED\n${error?.stack || error?.message || String(error)}\n`);
   cancel(error?.message || String(error));
   process.exitCode = 1;
 });
