@@ -565,10 +565,21 @@ public final class PlayedConfig {
 	}
 
 	public enum HudPosition {
-		TOP_LEFT,
-		TOP_RIGHT,
-		BOTTOM_LEFT,
-		BOTTOM_RIGHT
+		TOP_LEFT("Top Left"),
+		TOP_RIGHT("Top Right"),
+		BOTTOM_LEFT("Bottom Left"),
+		BOTTOM_RIGHT("Bottom Right");
+
+		private final String displayName;
+
+		HudPosition(String displayName) {
+			this.displayName = displayName;
+		}
+
+		@Override
+		public String toString() {
+			return this.displayName;
+		}
 	}
 
 	public enum SortMode {

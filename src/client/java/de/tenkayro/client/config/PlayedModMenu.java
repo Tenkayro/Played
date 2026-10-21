@@ -130,9 +130,9 @@ public class PlayedModMenu implements ModMenuApi {
 			.setTooltip(Component.literal("Show a translucent background behind the HUD text"))
 			.setSaveConsumer(PlayedConfig::setShowHudBackground)
 			.build());
-		hud.add(entryBuilder.startEnumSelector(Component.literal("HUD Position"), PlayedConfig.HudPosition.class, PlayedConfig.getHudPosition())
+		hud.add(entryBuilder.startEnumSelector(Component.literal("Position"), PlayedConfig.HudPosition.class, PlayedConfig.getHudPosition())
 			.setDefaultValue(PlayedConfig.HudPosition.TOP_LEFT)
-			.setTooltip(Component.literal("Choose the corner used as the HUD anchor"))
+			.setTooltip(Component.literal("Choose where the playtime display appears"))
 			.setSaveConsumer(PlayedConfig::setHudPosition)
 			.build());
 		hud.add(entryBuilder.startIntSlider(Component.literal("HUD Size (%)"), PlayedConfig.getHudScalePercent(), 50, 200)
