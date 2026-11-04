@@ -3,6 +3,8 @@
 	"package": "de.tenkayro.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"KeyboardActivityMixin",
+		"MouseActivityMixin",
 		"DrawContextMixin",
 		"EditWorldScreenMixin",
 		"GameMenuScreenMixin",

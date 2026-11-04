@@ -47,6 +47,6 @@ public abstract class ManageServerScreenMixin extends Screen {
 				PlaytimeStorage.resetServerPlaytime(this.serverData.name, this.serverData.ip);
 			}
 			minecraft.gui.setScreen(currentScreen);
-		}, Component.literal("Reset Playtime"), Component.literal("Reset the saved playtime for this server?"), Component.literal("Reset"), Component.literal("Cancel")));
+		}, Component.translatable("played.reset.title"), Component.translatable("played.reset.server_question"), Component.translatable("played.reset.action"), Component.translatable("played.cancel")));
 	}
 }

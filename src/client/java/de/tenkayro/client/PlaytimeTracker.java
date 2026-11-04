@@ -20,11 +20,6 @@ public final class PlaytimeTracker {
 	private static boolean tracking;
 	private static boolean paused;
 
-	private static double lastX;
-	private static double lastY;
-	private static double lastZ;
-	private static float lastXRot;
-	private static float lastYRot;
 	private static long lastActivityNanos;
 
 	private PlaytimeTracker() {
@@ -39,30 +34,23 @@ public final class PlaytimeTracker {
 		}
 
 		long nowNanos = System.nanoTime();
-		boolean isAfk = false;
-		var player = client.player;
-		if (PlayedConfig.shouldPauseOnAfk() && player != null) {
-			double x = player.getX();
-			double y = player.getY();
-			double z = player.getZ();
-			float xRot = player.getXRot();
-			float yRot = player.getYRot();
-			
-			if (x != lastX || y != lastY || z != lastZ || xRot != lastXRot || yRot != lastYRot) {
-				lastX = x;
-				lastY = y;
-				lastZ = z;
-				lastXRot = xRot;
-				lastYRot = yRot;
-				lastActivityNanos = nowNanos;
-			}
-			
-			if (nowNanos - lastActivityNanos > PlayedConfig.getAfkTimeoutSeconds() * 1_000_000_000L) {
-				isAfk = true;
-			}
+		// Initialize a new target before applying AFK detection, including stationary spawns.
+		if (worldDirectory != null && (!tracking || !worldDirectory.equals(currentWorldDirectory))) {
+			tickWorld(worldDirectory, nowNanos);
+			return;
 		}
-
-		if (isAfk) {
+		if (serverInfo != null && (!tracking || !normalizeServerAddress(serverInfo.ip).equals(currentServerAddress))) {
+			tickServer(serverInfo, nowNanos);
+			return;
+		}
+		if (client.isWindowActive() && client.gui.screen() == null) {
+			var options = client.options;
+			if (options.keyUp.isDown() || options.keyDown.isDown() || options.keyLeft.isDown()
+				|| options.keyRight.isDown() || options.keyJump.isDown() || options.keyAttack.isDown()
+				|| options.keyUse.isDown()) activity();
+		}
+		if (PlayedConfig.shouldPauseOnAfk()
+			&& nowNanos - lastActivityNanos > PlayedConfig.getAfkTimeoutSeconds() * 1_000_000_000L) {
 			pause();
 			return;
 		}
@@ -74,7 +62,12 @@ public final class PlaytimeTracker {
 		tickServer(serverInfo, nowNanos);
 	}
 
+	public static void activity() { lastActivityNanos = System.nanoTime(); }
+
+	public static boolean isPaused() { return paused; }
+
 	public static void flush() {
+		PlaytimeHistory.save();
 		if (currentWorldDirectory != null) {
 			PlaytimeStorage.save(currentWorldDirectory);
 		} else {
@@ -83,6 +76,7 @@ public final class PlaytimeTracker {
 	}
 
 	public static void stop() {
+		PlaytimeHistory.finish();
 		flush();
 		currentWorldDirectory = null;
 		currentServerAddress = null;
@@ -137,6 +131,8 @@ public final class PlaytimeTracker {
 			tracking = true;
 			paused = false;
 			PlaytimeStorage.getWorldMillis(worldDirectory);
+			String name = worldDirectory.getFileName().toString();
+			PlaytimeHistory.begin("world:" + name, name, System.currentTimeMillis());
 			Played.LOGGER.info("Started world playtime tracking for {}", worldDirectory);
 			return;
 		}
@@ -145,10 +141,12 @@ public final class PlaytimeTracker {
 		long elapsedMillis = (nowNanos - lastTickNanos) / 1_000_000L;
 		lastTickNanos += elapsedMillis * 1_000_000L;
 		sessionMillis += elapsedMillis;
+		long previous = PlaytimeStorage.getWorldMillis(worldDirectory);
 		PlaytimeStorage.addPlaytime(worldDirectory, elapsedMillis);
+		record(elapsedMillis, previous, PlaytimeStorage.getWorldMillis(worldDirectory), worldDirectory.getFileName().toString());
 
 		if (nowNanos - lastSaveNanos >= SAVE_INTERVAL_MILLIS * 1_000_000L) {
-			PlaytimeStorage.save(worldDirectory);
+			flush();
 			lastSaveNanos = nowNanos;
 		}
 	}
@@ -166,6 +164,7 @@ public final class PlaytimeTracker {
 			tracking = true;
 			paused = false;
 			PlaytimeStorage.getServerMillis(serverInfo.name, serverInfo.ip);
+			PlaytimeHistory.begin("server:" + serverAddress, java.util.Objects.requireNonNullElse(serverInfo.name, serverAddress), System.currentTimeMillis());
 			Played.LOGGER.info("Started server playtime tracking for {}", serverInfo.ip);
 			return;
 		}
@@ -174,13 +173,30 @@ public final class PlaytimeTracker {
 		long elapsedMillis = (nowNanos - lastTickNanos) / 1_000_000L;
 		lastTickNanos += elapsedMillis * 1_000_000L;
 		sessionMillis += elapsedMillis;
+		long previous = PlaytimeStorage.getServerMillis(serverInfo.name, serverAddress);
 		PlaytimeStorage.addServerPlaytime(serverInfo.name, serverAddress, elapsedMillis);
+		record(elapsedMillis, previous, PlaytimeStorage.getServerMillis(serverInfo.name, serverAddress), java.util.Objects.requireNonNullElse(serverInfo.name, serverAddress));
 
 		if (nowNanos - lastSaveNanos >= SAVE_INTERVAL_MILLIS * 1_000_000L) {
-			PlaytimeStorage.saveCentral();
+			flush();
 			lastSaveNanos = nowNanos;
 		}
 	}
+
+	private static void record(long elapsed, long previous, long current, String name) {
+		PlaytimeHistory.record(elapsed, System.currentTimeMillis(), java.time.ZoneId.systemDefault());
+		if (!PlayedConfig.shouldNotifyMilestones()) return;
+		long milestone = Milestones.crossed(previous, current);
+		if (milestone > 0) {
+			var client = Minecraft.getInstance();
+			net.minecraft.client.gui.components.toasts.SystemToast.add(client.gui.toastManager(),
+				MILESTONE_TOAST, net.minecraft.network.chat.Component.translatable("played.milestone.title", milestone),
+				net.minecraft.network.chat.Component.literal(java.util.Objects.requireNonNull(name)));
+		}
+	}
+
+	private static final net.minecraft.client.gui.components.toasts.SystemToast.@org.jspecify.annotations.NonNull SystemToastId MILESTONE_TOAST =
+		new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
 
 	private static void pause() {
 		if (tracking) {
@@ -210,7 +226,7 @@ public final class PlaytimeTracker {
 		return serverInfo != null && serverInfo.ip != null && !serverInfo.ip.isBlank() ? serverInfo : null;
 	}
 
-	private static String normalizeServerAddress(String serverAddress) {
-		return serverAddress.trim().toLowerCase(Locale.ROOT);
+	private static @org.jspecify.annotations.NonNull String normalizeServerAddress(String serverAddress) {
+		return java.util.Objects.requireNonNull(serverAddress.trim().toLowerCase(Locale.ROOT));
 	}
 }

@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.jspecify.annotations.NonNull;
 
 public final class PlayedConfig {
+	private static final java.util.regex.Pattern TIME_UNIT_PATTERN = java.util.regex.Pattern.compile("[dhms]");
 	private static final String MOD_FOLDER = "Played";
 	private static final String FILE_NAME = "config.properties";
 
@@ -71,6 +72,7 @@ public final class PlayedConfig {
 	private static String mainMenuPrefix = "<gradient:#a855f7:#ec4899>Playtime: {time}</gradient>";
 	private static String pauseMenuPrefix = "<gradient:#a855f7:#ec4899>Playtime: {time}</gradient>";
 	private static boolean pauseOnAfk = false;
+	private static boolean notifyMilestones = false;
 	private static int afkTimeoutSeconds = 900;
 
 	private PlayedConfig() {
@@ -143,6 +145,7 @@ public final class PlayedConfig {
 			mainMenuPrefix = properties.getProperty(KEY_MAIN_MENU_PREFIX, mainMenuPrefix);
 			pauseMenuPrefix = properties.getProperty(KEY_PAUSE_MENU_PREFIX, pauseMenuPrefix);
 			pauseOnAfk = readBoolean(properties, KEY_PAUSE_ON_AFK, pauseOnAfk);
+			notifyMilestones = readBoolean(properties, "notify_milestones", notifyMilestones);
 			afkTimeoutSeconds = Math.max(0, readInt(properties, KEY_AFK_TIMEOUT_SECONDS, afkTimeoutSeconds));
 			
 			// Migrate old default configs to new gradient format
@@ -199,6 +202,7 @@ public final class PlayedConfig {
 		properties.setProperty(KEY_MAIN_MENU_PREFIX, mainMenuPrefix);
 		properties.setProperty(KEY_PAUSE_MENU_PREFIX, pauseMenuPrefix);
 		properties.setProperty(KEY_PAUSE_ON_AFK, Boolean.toString(pauseOnAfk));
+		properties.setProperty("notify_milestones", Boolean.toString(notifyMilestones));
 		properties.setProperty(KEY_AFK_TIMEOUT_SECONDS, Integer.toString(afkTimeoutSeconds));
 
 		try {
@@ -211,6 +215,7 @@ public final class PlayedConfig {
 	}
 
 	public static synchronized void reset() {
+		notifyMilestones = false;
 		trackWorlds = true;
 		trackServers = true;
 		showWorldPlaytime = true;
@@ -471,6 +476,18 @@ public final class PlayedConfig {
 		return pauseOnAfk;
 	}
 
+	public static boolean shouldNotifyMilestones() { return notifyMilestones; }
+	public static void setNotifyMilestones(boolean enabled) { notifyMilestones = enabled; save(); }
+
+	/** Save a complete editor placement with a single atomic config write. */
+	public static void setHudPlacement(HudPosition position, int x, int y, int scale) {
+		hudPosition = position;
+		hudHorizontalOffset = clamp(x, 0, 1000);
+		hudVerticalOffset = clamp(y, 0, 1000);
+		hudScalePercent = clamp(scale, 50, 200);
+		save();
+	}
+
 	public static void setPauseOnAfk(boolean pauseOnAfk) {
 		PlayedConfig.pauseOnAfk = pauseOnAfk;
 		save();
@@ -486,23 +503,25 @@ public final class PlayedConfig {
 	}
 
 	public static net.minecraft.network.chat.Component formatListPlaytime(String formattedTime) {
-		return MiniMessageUtil.parse(formatPlaytime(listPrefix, formattedTime));
+		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(listPrefix, "played.template.list"), formattedTime));
 	}
 
-	public static String formatTime(long millis) {
-		return PlaytimeStorage.format(millis, timeFormat.storageFormat());
+	public static @NonNull String formatTime(long millis) {
+		String formatted = PlaytimeStorage.format(millis, timeFormat.storageFormat());
+		return java.util.Objects.requireNonNull(TIME_UNIT_PATTERN.matcher(formatted).replaceAll(match ->
+			java.util.regex.Matcher.quoteReplacement(net.minecraft.network.chat.Component.translatable("played.time.unit." + match.group()).getString())));
 	}
 
 	public static net.minecraft.network.chat.Component formatMainMenuPlaytime(String formattedTime) {
-		return MiniMessageUtil.parse(formatPlaytime(mainMenuPrefix, formattedTime));
+		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(mainMenuPrefix, "played.template.main_menu"), formattedTime));
 	}
 
 	public static net.minecraft.network.chat.Component formatPauseMenuPlaytime(String formattedTime) {
-		return MiniMessageUtil.parse(formatPlaytime(pauseMenuPrefix, formattedTime));
+		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(pauseMenuPrefix, "played.template.pause_menu"), formattedTime));
 	}
 
 	public static net.minecraft.network.chat.Component formatHudPlaytime(long millis) {
-		return MiniMessageUtil.parse(formatPlaytime(hudTemplate, formatTime(millis)));
+		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(hudTemplate, "played.template.hud"), formatTime(millis)));
 	}
 
 	private static boolean readBoolean(Properties properties, String key, boolean fallback) {
@@ -576,6 +595,17 @@ public final class PlayedConfig {
 		}
 	}
 
+	private static String localizeDefaultTemplate(String template, String key) {
+		String englishDefault = switch (key) {
+			case "played.template.hud" -> "<gradient:#a855f7:#ec4899>\u23f1 {current}</gradient>";
+			case "played.template.list" -> "<gradient:#a855f7:#ec4899>\u23f1 {time}</gradient>";
+			case "played.template.main_menu" -> "<gradient:#a855f7:#ec4899>Playtime: {time}</gradient>";
+			case "played.template.pause_menu" -> "<gradient:#a855f7:#ec4899>Playtime: {time}</gradient>";
+			default -> "";
+		};
+		return englishDefault.equals(template) ? net.minecraft.network.chat.Component.translatable(key).getString() : template;
+	}
+
 	private static String formatPlaytime(String template, String formattedTime) {
 		net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
 		long currentMillis = client == null ? 0L : PlaytimeTracker.getActivePlaytimeMillis(client);
@@ -607,27 +637,27 @@ public final class PlayedConfig {
 	}
 
 	public enum HudPosition {
-		TOP_LEFT("Top Left"),
-		TOP_RIGHT("Top Right"),
-		BOTTOM_LEFT("Bottom Left"),
-		BOTTOM_RIGHT("Bottom Right");
+		TOP_LEFT("played.enum.hudposition.top_left"),
+		TOP_RIGHT("played.enum.hudposition.top_right"),
+		BOTTOM_LEFT("played.enum.hudposition.bottom_left"),
+		BOTTOM_RIGHT("played.enum.hudposition.bottom_right");
 
-		private final String displayName;
+		private final @NonNull String displayName;
 
-		HudPosition(String displayName) {
+		HudPosition(@NonNull String displayName) {
 			this.displayName = displayName;
 		}
 
 		@Override
 		public String toString() {
-			return this.displayName;
+			return net.minecraft.network.chat.Component.translatable(this.displayName).getString();
 		}
 	}
 
 	public enum SortMode {
-		DISABLED("Disabled"),
-		UP_DOWN("Descending"),
-		DOWN_UP("Ascending");
+		DISABLED("played.enum.sortmode.disabled"),
+		UP_DOWN("played.enum.sortmode.up_down"),
+		DOWN_UP("played.enum.sortmode.down_up");
 
 		private final @NonNull String labelKey;
 
@@ -636,7 +666,7 @@ public final class PlayedConfig {
 		}
 
 		public @NonNull String label() {
-			return this.labelKey;
+			return net.minecraft.network.chat.Component.translatable(this.labelKey).getString();
 		}
 
 		public SortMode next() {
@@ -646,9 +676,9 @@ public final class PlayedConfig {
 	}
 
 	public enum TimeFormatMode {
-		VERBOSE("Verbose", PlaytimeStorage.TimeFormat.VERBOSE),
-		COMPACT("Compact", PlaytimeStorage.TimeFormat.COMPACT),
-		CLOCK("Clock", PlaytimeStorage.TimeFormat.CLOCK);
+		VERBOSE("played.enum.timeformatmode.verbose", PlaytimeStorage.TimeFormat.VERBOSE),
+		COMPACT("played.enum.timeformatmode.compact", PlaytimeStorage.TimeFormat.COMPACT),
+		CLOCK("played.enum.timeformatmode.clock", PlaytimeStorage.TimeFormat.CLOCK);
 
 		private final @NonNull String labelKey;
 		private final PlaytimeStorage.TimeFormat storageFormat;
@@ -659,7 +689,7 @@ public final class PlayedConfig {
 		}
 
 		public @NonNull String label() {
-			return this.labelKey;
+			return net.minecraft.network.chat.Component.translatable(this.labelKey).getString();
 		}
 
 		public PlaytimeStorage.TimeFormat storageFormat() {

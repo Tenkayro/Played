@@ -2,6 +2,8 @@
 
 Played is a lightweight Fabric mod that tracks local playtime for singleplayer worlds and multiplayer servers, including session, current-world or server, and total playtime displays.
 
+The clickable playtime text in the title menu and clock button in the pause menu opens a statistics hub with daily and weekly activity, world/server rankings, session history, HUD editing, and JSON/CSV exports. Use `/played stats`, `/played config`, or `/played hud` in-game. Keyboard shortcuts can be assigned in Controls. Full usage and backup/import semantics are documented in [docs/USAGE.md](docs/USAGE.md).
+
 ## Official downloads
 
 - [Modrinth](https://modrinth.com/mod/played/versions)

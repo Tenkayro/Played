@@ -14,7 +14,7 @@ public final class ResetPlaytimeIconButton extends AbstractButton {
 	public static final int SIZE = 20;
 	private static final int MARGIN = 4;
 	private static final Component MESSAGE = Component.literal("⏱");
-	private static final Component TOOLTIP = Component.literal("Reset Playtime");
+	private static final Component TOOLTIP = Component.translatable("played.reset.title");
 	private static final int RED = 0xFFFF4444;
 	private static final int RED_HOVERED = 0xFFFF6666;
 	private final Runnable onPress;

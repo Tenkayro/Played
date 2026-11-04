@@ -48,6 +48,6 @@ public abstract class EditWorldScreenMixin extends Screen {
 				PlaytimeStorage.resetWorldPlaytime(this.levelAccess.getLevelPath(LevelResource.ROOT));
 			}
 			minecraft.gui.setScreen(currentScreen);
-		}, Component.literal("Reset Playtime"), Component.literal("Reset the saved playtime for this world?"), Component.literal("Reset"), Component.literal("Cancel")));
+		}, Component.translatable("played.reset.title"), Component.translatable("played.reset.world_question"), Component.translatable("played.reset.action"), Component.translatable("played.cancel")));
 	}
 }

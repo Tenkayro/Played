@@ -46,6 +46,45 @@ public final class PlaytimeStorage {
 	private PlaytimeStorage() {
 	}
 
+	public record Entry(String kind, String key, String name, long millis) {}
+
+	/** World keys are save-folder names, never absolute paths from an imported file. */
+	public static synchronized List<@org.jspecify.annotations.NonNull Entry> entries() {
+		List<@org.jspecify.annotations.NonNull Entry> result = new ArrayList<>();
+		if (gameDirectory != null && Files.isDirectory(gameDirectory.resolve("saves"))) {
+			try (var worlds = Files.list(gameDirectory.resolve("saves"))) {
+				worlds.filter(Files::isDirectory).filter(p -> Files.isRegularFile(p.resolve("level.dat"))
+					|| Files.isRegularFile(worldFile(p))).forEach(p -> {
+					String name = p.getFileName().toString();
+					result.add(new Entry("world", name, name, getWorldMillis(p)));
+				});
+			} catch (IOException exception) { Played.LOGGER.warn("Could not list world playtime", exception); }
+		}
+		for (ServerPlaytime server : SERVER_CACHE.values()) {
+			result.add(new Entry("server", server.address(), server.name(), server.millis()));
+		}
+		result.sort(Comparator.<Entry>comparingLong(e -> java.util.Objects.requireNonNull(e).millis()).reversed().thenComparing(e -> java.util.Objects.requireNonNull(e).name()));
+		return List.copyOf(result);
+	}
+
+	static synchronized void mergeEntries(List<@org.jspecify.annotations.NonNull Entry> entries, long total) {
+		allTimeMillis = Math.max(allTimeMillis, total);
+		for (Entry entry : entries) {
+			if ("server".equals(entry.kind())) {
+				String address = normalizeServerAddress(entry.key());
+				long millis = Math.max(getServerMillis(entry.name(), address), entry.millis());
+				SERVER_CACHE.put(serverId(address), new ServerPlaytime(entry.name(), address, millis));
+			} else {
+				Path world = gameDirectory.resolve("saves").resolve(entry.key()).normalize();
+				if (!world.getParent().equals(gameDirectory.resolve("saves")) || !Files.isDirectory(world)) continue;
+				long millis = Math.max(getWorldMillis(world), entry.millis());
+				WORLD_CACHE.put(normalize(world), millis);
+				writeWorld(world, millis);
+			}
+		}
+		writeCentral();
+	}
+
 	public static synchronized void initialize(Path gameDirectory) {
 		PlaytimeStorage.gameDirectory = normalize(gameDirectory);
 		WORLD_CACHE.clear();

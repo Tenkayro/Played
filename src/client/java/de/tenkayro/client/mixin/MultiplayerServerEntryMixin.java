@@ -3,7 +3,7 @@ package de.tenkayro.client.mixin;
 import de.tenkayro.client.ListPlaytimeLayout;
 import de.tenkayro.client.PlaytimeStorage;
 import de.tenkayro.client.config.PlayedConfig;
-import de.tenkayro.client.config.PlayedModMenu;
+import de.tenkayro.client.config.PlayedSettings;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -30,8 +30,8 @@ public abstract class MultiplayerServerEntryMixin extends ServerSelectionList.En
 	private static final long SORTING_PREVENTS_REORDER_TOOLTIP_MILLIS = 1800L;
 	@SuppressWarnings("null")
 	private static final @NonNull List<Component> SORTING_PREVENTS_REORDER_TOOLTIP = List.of(
-		Component.literal("Played sorting is active."),
-		Component.literal("Double-click for config.")
+		Component.translatable("played.sorting.active"),
+		Component.translatable("played.sorting.open_config")
 	);
 
 	private long played$showReorderTooltipUntilMillis;
@@ -86,7 +86,7 @@ public abstract class MultiplayerServerEntryMixin extends ServerSelectionList.En
 			long currentMillis = Util.getMillis();
 			if (currentMillis - this.played$lastBlockedMoveClickMillis <= OPEN_CONFIG_DOUBLE_CLICK_MILLIS) {
 				this.played$clearReorderTooltip();
-				this.minecraft.gui.setScreen(new PlayedModMenu().getModConfigScreenFactory().create(this.screen));
+				this.minecraft.gui.setScreen(PlayedSettings.createScreen(this.screen));
 				info.setReturnValue(true);
 				return;
 			}

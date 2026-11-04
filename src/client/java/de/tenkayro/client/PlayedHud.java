@@ -22,6 +22,7 @@ public final class PlayedHud {
 	private static String cachedTemplate;
 	private static PlayedConfig.TimeFormatMode cachedTimeFormat;
 	private static Component cachedText;
+	private static net.minecraft.locale.Language cachedLanguage;
 
 	private PlayedHud() {
 	}
@@ -58,41 +59,41 @@ public final class PlayedHud {
 
 		long millis = PlaytimeTracker.getActivePlaytimeMillis(minecraft);
 		Component text = getText(millis);
-		int textWidth = minecraft.font.width(Objects.requireNonNull(text, "text"));
-		boolean right = PlayedConfig.getHudPosition() == PlayedConfig.HudPosition.TOP_RIGHT
-			|| PlayedConfig.getHudPosition() == PlayedConfig.HudPosition.BOTTOM_RIGHT;
-		boolean bottom = PlayedConfig.getHudPosition() == PlayedConfig.HudPosition.BOTTOM_LEFT
-			|| PlayedConfig.getHudPosition() == PlayedConfig.HudPosition.BOTTOM_RIGHT;
-		boolean background = PlayedConfig.shouldShowHudBackground();
-		int padding = background ? PADDING : 0;
-		float scale = PlayedConfig.getHudScalePercent() / 100.0F;
-		float scaledWidth = (textWidth + padding * 2) * scale;
-		float scaledHeight = (TEXT_HEIGHT + padding * 2) * scale;
-		float maxOuterX = Math.max(0.0F, graphics.guiWidth() - scaledWidth);
-		float maxOuterY = Math.max(0.0F, graphics.guiHeight() - scaledHeight);
-		float outerX = right
-			? graphics.guiWidth() - PlayedConfig.getHudHorizontalOffset() - scaledWidth
-			: PlayedConfig.getHudHorizontalOffset();
-		float outerY = bottom
-			? graphics.guiHeight() - PlayedConfig.getHudVerticalOffset() - scaledHeight
-			: PlayedConfig.getHudVerticalOffset();
-		outerX = Math.max(0.0F, Math.min(maxOuterX, outerX));
-		outerY = Math.max(0.0F, Math.min(maxOuterY, outerY));
-		float textX = outerX + padding * scale;
-		float textY = outerY + padding * scale;
+		drawCorner(graphics, text, PlayedConfig.getHudPosition(), PlayedConfig.getHudHorizontalOffset(),
+			PlayedConfig.getHudVerticalOffset(), PlayedConfig.getHudScalePercent(), PlayedConfig.shouldShowHudBackground());
+	}
 
+	public static HudBounds bounds(int screenWidth, int screenHeight, int textWidth,
+		PlayedConfig.HudPosition position, int offsetX, int offsetY, int scalePercent, boolean background) {
+		int padding = background ? PADDING : 0;
+		float scale = scalePercent / 100.0F;
+		float width = (textWidth + padding * 2) * scale;
+		float height = (TEXT_HEIGHT + padding * 2) * scale;
+		boolean right = position == PlayedConfig.HudPosition.TOP_RIGHT || position == PlayedConfig.HudPosition.BOTTOM_RIGHT;
+		boolean bottom = position == PlayedConfig.HudPosition.BOTTOM_LEFT || position == PlayedConfig.HudPosition.BOTTOM_RIGHT;
+		float x = right ? screenWidth - offsetX - width : offsetX;
+		float y = bottom ? screenHeight - offsetY - height : offsetY;
+		return new HudBounds(Math.max(0, Math.min(Math.max(0, screenWidth - width), x)),
+			Math.max(0, Math.min(Math.max(0, screenHeight - height), y)), width, height);
+	}
+
+	public record HudBounds(float x, float y, float width, float height) {}
+
+	public static HudBounds drawCorner(GuiGraphicsExtractor graphics, @NonNull Component text, PlayedConfig.HudPosition position,
+		int offsetX, int offsetY, int scalePercent, boolean background) {
+		Minecraft minecraft = Minecraft.getInstance();
+		int textWidth = minecraft.font.width(text);
+		HudBounds box = bounds(graphics.guiWidth(), graphics.guiHeight(), textWidth, position, offsetX, offsetY, scalePercent, background);
+		float scale = scalePercent / 100.0F;
+		int padding = background ? PADDING : 0;
 		graphics.pose().pushMatrix();
 		try {
-			graphics.pose().translate(textX, textY);
+			graphics.pose().translate(box.x() + padding * scale, box.y() + padding * scale);
 			graphics.pose().scale(scale, scale);
-			if (background) {
-				graphics.fill(-PADDING, -PADDING, textWidth + PADDING, TEXT_HEIGHT + PADDING, 0x80000000);
-			}
-
-			graphics.text(minecraft.font, Objects.requireNonNull(text, "text"), 0, 0, 0xFFFFFFFF, true);
-		} finally {
-			graphics.pose().popMatrix();
-		}
+			if (background) graphics.fill(-PADDING, -PADDING, textWidth + PADDING, TEXT_HEIGHT + PADDING, 0x80000000);
+			graphics.text(minecraft.font, text, 0, 0, 0xFFFFFFFF, true);
+		} finally { graphics.pose().popMatrix(); }
+		return box;
 	}
 
 	private static void extractActionBar(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
@@ -115,7 +116,7 @@ public final class PlayedHud {
 		}
 
 		@NonNull Component title = Objects.requireNonNull(
-			Component.literal("Played").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+			Component.translatable("played.name").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
 		);
 		@NonNull Component text = getDisplayText(minecraft);
 		int width = Math.max(minecraft.font.width(title), minecraft.font.width(text));
@@ -136,7 +137,8 @@ public final class PlayedHud {
 		long totalSecond = PlaytimeStorage.getAllTimeMillis() / 1000L;
 		String template = PlayedConfig.getHudTemplate();
 		PlayedConfig.TimeFormatMode timeFormat = PlayedConfig.getTimeFormat();
-		if (cachedText == null
+		if (cachedLanguage != net.minecraft.locale.Language.getInstance()
+			|| cachedText == null
 			|| currentSecond != cachedCurrentSecond
 			|| sessionSecond != cachedSessionSecond
 			|| totalSecond != cachedTotalSecond
@@ -145,6 +147,7 @@ public final class PlayedHud {
 			cachedCurrentSecond = currentSecond;
 			cachedSessionSecond = sessionSecond;
 			cachedTotalSecond = totalSecond;
+			cachedLanguage = net.minecraft.locale.Language.getInstance();
 			cachedTemplate = template;
 			cachedTimeFormat = timeFormat;
 			cachedText = Objects.requireNonNull(PlayedConfig.formatHudPlaytime(currentMillis), "text");

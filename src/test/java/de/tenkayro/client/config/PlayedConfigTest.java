@@ -35,7 +35,6 @@ class PlayedConfigTest {
 		assertTrue(PlayedConfig.shouldTrackWorlds());
 		assertEquals(0, PlayedConfig.getAfkTimeoutSeconds());
 		assertEquals(PlayedConfig.HudPosition.TOP_LEFT, PlayedConfig.getHudPosition());
-		assertEquals("Top Left", PlayedConfig.HudPosition.TOP_LEFT.toString());
 		assertEquals(200, PlayedConfig.getHudScalePercent());
 		assertEquals(0, PlayedConfig.getHudHorizontalOffset());
 		assertEquals(1000, PlayedConfig.getHudVerticalOffset());
