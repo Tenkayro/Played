@@ -67,7 +67,7 @@
   "played.config.option.time_format": "Time Format",
   "played.config.option.time_format.description": "Choose how durations are written",
   "played.config.option.display_text": "Display Text",
-  "played.config.option.display_text.description": "Supports {time}, {session}, {current}, and {total}",
+  "played.config.option.display_text.description": "Supports {time}, {session}, {current}, {total}, {today}, {week}, and {afk}",
   "played.config.option.singleplayer_list": "Singleplayer List",
   "played.config.option.singleplayer_list.description": "Show playtime next to each world",
   "played.config.option.multiplayer_list": "Multiplayer List",
@@ -148,5 +148,12 @@
   "played.weekday.sunday": "Sun",
   "played.page": "%s / %s",
   "played.date.session_pattern": "dd.MM.yy HH:mm",
-  "played.hud.scale": "%s%%"
+  "played.hud.scale": "%s%%",
+  "played.session.active": "Active",
+  "played.command.session_reset": "Current session playtime has been reset.",
+  "played.command.help": "Available commands: /played [stats|config|hud|today|week|session [reset]|current|total]",
+  "played.config.option.break_reminder": "Break Reminder",
+  "played.config.option.break_reminder.description": "Notify after playing for this many minutes in a single session (0 to disable)",
+  "played.break_reminder.title": "Played · Time for a break!",
+  "played.break_reminder.message": "You've been playing for %s minutes."
 }
