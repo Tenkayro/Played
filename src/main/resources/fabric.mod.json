@@ -3,7 +3,7 @@
 	"id": "played",
 	"version": "${version}",
 	"name": "Played",
-	"description": "Tracks local playtime for singleplayer worlds and multiplayer servers, shows total playtime, and adds an optional Mod Menu config screen.",
+	"description": "Tracks local playtime for singleplayer worlds and multiplayer servers with customizable HUD overlays, activity charts, session history, break reminders, milestones, and backup exports.",
 	"authors": [
 		"Tenkayro"
 	],

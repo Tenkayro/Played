@@ -2,7 +2,16 @@
 
 Played is a lightweight Fabric mod that tracks local playtime for singleplayer worlds and multiplayer servers, including session, current-world or server, and total playtime displays.
 
-The clickable playtime text in the title menu and clock button in the pause menu opens a statistics hub with daily and weekly activity, world/server rankings, session history, HUD editing, and JSON/CSV exports. Use `/played stats`, `/played config`, or `/played hud` in-game. Keyboard shortcuts can be assigned in Controls. Full usage and backup/import semantics are documented in [docs/USAGE.md](docs/USAGE.md).
+The clickable playtime text in the title menu and clock button in the pause menu opens a statistics hub with daily and weekly activity, world/server rankings, session history, HUD editing, and JSON/CSV exports. In-game, use `/played stats`, `/played config`, `/played hud`, or chat commands like `/played share`. Four configurable keyboard shortcuts can be assigned under Controls. Full usage and backup/import semantics are documented in [docs/USAGE.md](docs/USAGE.md).
+
+## Key Features
+
+- **Customizable In-Game HUD**: Corner overlay showing custom placeholders (`{time}`, `{session}`, `{current}`, `{total}`, `{today}`, `{week}`, `{afk}`) with a live draggable in-game editor and hold-to-peek keybind.
+- **Statistics Hub**: Interactive weekly activity chart with week navigation, all-time best day record, longest session record, searchable world/server rankings, and the last 500 sessions with active session status.
+- **AFK & Session Management**: Keyboard/mouse activity-based AFK detection, manual pause/resume, session reset, and optional session break reminders.
+- **Milestones & Audio Feedback**: Toast notifications and optional sound effects when reaching playtime milestones (10h, 100h, 500h, 1000h+) or receiving break reminders.
+- **Chat Sharing**: Easily share your session, world, or total playtime with other players in chat via `/played share`.
+- **Local Data & Backups**: All data is stored locally. Export portable JSON backups and CSV spreadsheets anytime with automatic folder access in your file manager.
 
 ## Official downloads
 
