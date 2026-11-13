@@ -2,7 +2,7 @@
 
 Click the playtime text in the title menu, use the clock button in the pause menu, or enter `/played stats`.
 The hub includes an overview, world/server rankings with search, and session history.
-English is the default language. All Played interface text is prepared for translation in `assets/played/lang/en_us.json`; see [TRANSLATING.md](TRANSLATING.md).
+English is the default language. All Played interface text is configured in `assets/played/lang/en_us.json`.
 
 ## Commands and keyboard shortcuts
 

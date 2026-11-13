@@ -23,6 +23,7 @@ class PlayedConfigTest {
 		Properties properties = new Properties();
 		properties.setProperty("track_worlds", "not-a-boolean");
 		properties.setProperty("afk_timeout_seconds", "-50");
+		properties.setProperty("break_reminder_minutes", "-15");
 		properties.setProperty("hud_position", "sideways");
 		properties.setProperty("hud_scale_percent", "500");
 		properties.setProperty("hud_horizontal_offset", "-10");
@@ -34,6 +35,7 @@ class PlayedConfigTest {
 		PlayedConfig.load();
 		assertTrue(PlayedConfig.shouldTrackWorlds());
 		assertEquals(0, PlayedConfig.getAfkTimeoutSeconds());
+		assertEquals(0, PlayedConfig.getBreakReminderMinutes());
 		assertEquals(PlayedConfig.HudPosition.TOP_LEFT, PlayedConfig.getHudPosition());
 		assertEquals(200, PlayedConfig.getHudScalePercent());
 		assertEquals(0, PlayedConfig.getHudHorizontalOffset());
@@ -54,5 +56,18 @@ class PlayedConfigTest {
 		);
 		assertEquals("Total 4m", PlayedConfig.formatTemplate("Total {total}", "1m", "2m", "3m", "4m"));
 		assertEquals("Playtime: 1m", PlayedConfig.formatTemplate("Playtime: ", "1m", "2m", "3m", "4m"));
+		assertEquals(
+			"Today 5m | Week 6m [AFK]",
+			PlayedConfig.formatTemplate(
+				"Today {today} | Week {week} {afk}",
+				"1m",
+				"2m",
+				"3m",
+				"4m",
+				"5m",
+				"6m",
+				"[AFK]"
+			)
+		);
 	}
 }

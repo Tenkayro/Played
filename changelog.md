@@ -15,8 +15,7 @@
 - Click the main-menu playtime text to open statistics. A clock button is available in the pause menu.
 - Settings are accessible without Mod Menu, including through `/played config`.
 - AFK detection now uses keyboard and mouse input, including inventory activity. Passive movement no longer counts as activity.
-- Interface text is ready for community translation through Tolgee. [Help translate Played into your language!](https://app.tolgee.io/projects/36408) English remains the fallback for untranslated text.
-- Added a safe fallback for invalid translated date formats.
+- Added a safe fallback for invalid date formats.
 
 ## Updating
 

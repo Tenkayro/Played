@@ -34,6 +34,12 @@ public final class PlaytimeHistory {
 
     public record Session(String id, String target, String name, long start, long end, long millis) {}
 
+    public static Session active() { return active; }
+
+    public static boolean isActive(String id) {
+        return active != null && active.id().equals(id);
+    }
+
     private PlaytimeHistory() {}
 
     public static void initialize(Path gameDirectory) {

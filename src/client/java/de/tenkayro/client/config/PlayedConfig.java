@@ -44,6 +44,7 @@ public final class PlayedConfig {
 	private static final String KEY_PAUSE_MENU_PREFIX = "pause_menu_prefix";
 	private static final String KEY_PAUSE_ON_AFK = "pause_on_afk";
 	private static final String KEY_AFK_TIMEOUT_SECONDS = "afk_timeout_seconds";
+	private static final String KEY_BREAK_REMINDER_MINUTES = "break_reminder_minutes";
 
 	private static Path configFile;
 	private static boolean trackWorlds = true;
@@ -74,6 +75,7 @@ public final class PlayedConfig {
 	private static boolean pauseOnAfk = false;
 	private static boolean notifyMilestones = false;
 	private static int afkTimeoutSeconds = 900;
+	private static int breakReminderMinutes = 0;
 
 	private PlayedConfig() {
 	}
@@ -147,6 +149,7 @@ public final class PlayedConfig {
 			pauseOnAfk = readBoolean(properties, KEY_PAUSE_ON_AFK, pauseOnAfk);
 			notifyMilestones = readBoolean(properties, "notify_milestones", notifyMilestones);
 			afkTimeoutSeconds = Math.max(0, readInt(properties, KEY_AFK_TIMEOUT_SECONDS, afkTimeoutSeconds));
+			breakReminderMinutes = Math.max(0, readInt(properties, KEY_BREAK_REMINDER_MINUTES, breakReminderMinutes));
 			
 			// Migrate old default configs to new gradient format
 			if ("\u23F1 {time}".equals(listPrefix)) listPrefix = "<gradient:#a855f7:#ec4899>\u23F1 {time}</gradient>";
@@ -204,6 +207,7 @@ public final class PlayedConfig {
 		properties.setProperty(KEY_PAUSE_ON_AFK, Boolean.toString(pauseOnAfk));
 		properties.setProperty("notify_milestones", Boolean.toString(notifyMilestones));
 		properties.setProperty(KEY_AFK_TIMEOUT_SECONDS, Integer.toString(afkTimeoutSeconds));
+		properties.setProperty(KEY_BREAK_REMINDER_MINUTES, Integer.toString(breakReminderMinutes));
 
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -243,6 +247,7 @@ public final class PlayedConfig {
 		pauseMenuPrefix = "<gradient:#a855f7:#ec4899>Playtime: {time}</gradient>";
 		pauseOnAfk = false;
 		afkTimeoutSeconds = 900;
+		breakReminderMinutes = 0;
 		save();
 		Played.LOGGER.info("Config reset to defaults.");
 	}
@@ -502,6 +507,15 @@ public final class PlayedConfig {
 		save();
 	}
 
+	public static int getBreakReminderMinutes() {
+		return breakReminderMinutes;
+	}
+
+	public static void setBreakReminderMinutes(int breakReminderMinutes) {
+		PlayedConfig.breakReminderMinutes = Math.max(0, breakReminderMinutes);
+		save();
+	}
+
 	public static net.minecraft.network.chat.Component formatListPlaytime(String formattedTime) {
 		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(listPrefix, "played.template.list"), formattedTime));
 	}
@@ -614,23 +628,37 @@ public final class PlayedConfig {
 			formattedTime,
 			formatTime(PlaytimeTracker.getSessionPlaytimeMillis()),
 			formatTime(currentMillis),
-			formatTime(PlaytimeStorage.getAllTimeMillis())
+			formatTime(PlaytimeStorage.getAllTimeMillis()),
+			formatTime(de.tenkayro.client.PlaytimeHistory.day(java.time.LocalDate.now())),
+			formatTime(de.tenkayro.client.PlaytimeHistory.week(java.time.LocalDate.now())),
+			PlaytimeTracker.isPaused() ? "[AFK]" : ""
 		);
 	}
 
 	static String formatTemplate(String template, String formattedTime, String session, String current, String total) {
+		return formatTemplate(template, formattedTime, session, current, total, "", "", "");
+	}
+
+	static String formatTemplate(String template, String formattedTime, String session, String current, String total,
+		String today, String week, String afk) {
 		String safeTemplate = template == null ? "" : template;
 		String safeTime = formattedTime == null ? "" : formattedTime;
 		boolean containsPlaceholder = safeTemplate.contains("{time}")
 			|| safeTemplate.contains("{session}")
 			|| safeTemplate.contains("{current}")
-			|| safeTemplate.contains("{total}");
+			|| safeTemplate.contains("{total}")
+			|| safeTemplate.contains("{today}")
+			|| safeTemplate.contains("{week}")
+			|| safeTemplate.contains("{afk}");
 		if (containsPlaceholder) {
 			return safeTemplate
 				.replace("{time}", safeTime)
 				.replace("{session}", session == null ? "" : session)
 				.replace("{current}", current == null ? "" : current)
-				.replace("{total}", total == null ? "" : total);
+				.replace("{total}", total == null ? "" : total)
+				.replace("{today}", today == null ? "" : today)
+				.replace("{week}", week == null ? "" : week)
+				.replace("{afk}", afk == null ? "" : afk);
 		}
 
 		return safeTemplate + safeTime;

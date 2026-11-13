@@ -28,6 +28,7 @@ public final class PlaytimeStorage {
 	private static final String LEGACY_CENTRAL_FILE_NAME = "playtime.properties";
 	private static final String KEY_ALL_TIME = "all_time_millis";
 	private static final String KEY_WORLD_TIME = "world_time_millis";
+	private static final String KEY_WORLD_NAME = "world_name";
 	private static final String SERVER_PREFIX = "server.";
 	private static final String SERVER_MILLIS_SUFFIX = ".millis";
 	private static final String SERVER_NAME_SUFFIX = ".name";
@@ -35,6 +36,7 @@ public final class PlaytimeStorage {
 	private static final String MAX_MILLIS_VALUE = Long.toString(Long.MAX_VALUE);
 
 	private static final Map<Path, Long> WORLD_CACHE = new HashMap<>();
+	private static final Map<Path, String> WORLD_NAME_CACHE = new HashMap<>();
 	private static final Map<String, ServerPlaytime> SERVER_CACHE = new HashMap<>();
 	private static final Map<String, String> SERVER_ID_CACHE = new HashMap<>();
 	private static Path gameDirectory;
@@ -55,8 +57,10 @@ public final class PlaytimeStorage {
 			try (var worlds = Files.list(gameDirectory.resolve("saves"))) {
 				worlds.filter(Files::isDirectory).filter(p -> Files.isRegularFile(p.resolve("level.dat"))
 					|| Files.isRegularFile(worldFile(p))).forEach(p -> {
-					String name = p.getFileName().toString();
-					result.add(new Entry("world", name, name, getWorldMillis(p)));
+					String folder = p.getFileName().toString();
+					long millis = getWorldMillis(p);
+					String name = WORLD_NAME_CACHE.getOrDefault(normalize(p), folder);
+					result.add(new Entry("world", folder, name, millis));
 				});
 			} catch (IOException exception) { Played.LOGGER.warn("Could not list world playtime", exception); }
 		}
@@ -88,6 +92,7 @@ public final class PlaytimeStorage {
 	public static synchronized void initialize(Path gameDirectory) {
 		PlaytimeStorage.gameDirectory = normalize(gameDirectory);
 		WORLD_CACHE.clear();
+		WORLD_NAME_CACHE.clear();
 		SERVER_CACHE.clear();
 		SERVER_ID_CACHE.clear();
 		Path centralDirectory = PlaytimeStorage.gameDirectory.resolve(MOD_FOLDER);
@@ -141,6 +146,12 @@ public final class PlaytimeStorage {
 		return allTimeMillis;
 	}
 
+	public static synchronized void setWorldDisplayName(Path worldDirectory, String name) {
+		if (name != null && !name.isBlank()) {
+			WORLD_NAME_CACHE.put(normalize(worldDirectory), name);
+		}
+	}
+
 	public static synchronized long getWorldMillis(Path worldDirectory) {
 		Path normalizedWorldDirectory = normalize(worldDirectory);
 		Long cached = WORLD_CACHE.get(normalizedWorldDirectory);
@@ -148,7 +159,12 @@ public final class PlaytimeStorage {
 			return cached;
 		}
 
-		long millis = readMillis(worldFile(normalizedWorldDirectory), KEY_WORLD_TIME);
+		Properties properties = readProperties(worldFile(normalizedWorldDirectory));
+		long millis = parseMillis(properties.getProperty(KEY_WORLD_TIME, "0"));
+		String name = properties.getProperty(KEY_WORLD_NAME);
+		if (name != null && !name.isBlank()) {
+			WORLD_NAME_CACHE.put(normalizedWorldDirectory, name);
+		}
 		WORLD_CACHE.put(normalizedWorldDirectory, millis);
 		return millis;
 	}
@@ -306,10 +322,6 @@ public final class PlaytimeStorage {
 		return worldDirectory.resolve(MOD_FOLDER).resolve(WORLD_FILE_NAME);
 	}
 
-	private static long readMillis(Path file, String key) {
-		return parseMillis(readProperties(file).getProperty(key, "0"));
-	}
-
 	private static void loadCentral() {
 		allTimeMillis = 0L;
 		SERVER_CACHE.clear();
@@ -351,6 +363,10 @@ public final class PlaytimeStorage {
 	private static void writeWorld(Path worldDirectory, long worldMillis) {
 		Properties properties = new Properties();
 		properties.setProperty(KEY_WORLD_TIME, Long.toString(Math.max(0L, worldMillis)));
+		String name = WORLD_NAME_CACHE.get(normalize(worldDirectory));
+		if (name != null && !name.isBlank()) {
+			properties.setProperty(KEY_WORLD_NAME, name);
+		}
 		writeProperties(worldFile(worldDirectory), properties);
 	}
 

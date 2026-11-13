@@ -53,7 +53,18 @@ public class PlayedClient implements ClientModInitializer {
 				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("week")
 					.executes(context -> sendStat(context.getSource(), "played.command.week", PlaytimeHistory.week(LocalDate.now()))))
 				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("session")
-					.executes(context -> sendStat(context.getSource(), "played.command.session", PlaytimeTracker.getSessionPlaytimeMillis())))
+					.executes(context -> sendStat(context.getSource(), "played.command.session", PlaytimeTracker.getSessionPlaytimeMillis()))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("reset")
+						.executes(context -> {
+							PlaytimeTracker.resetSession();
+							context.getSource().sendFeedback(Component.translatable("played.command.session_reset").withStyle(net.minecraft.ChatFormatting.GREEN));
+							return 1;
+						})))
+				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("help")
+					.executes(context -> {
+						context.getSource().sendFeedback(Component.translatable("played.command.help").withStyle(net.minecraft.ChatFormatting.AQUA));
+						return 1;
+					}))
 				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("current")
 					.executes(context -> sendStat(
 						context.getSource(),

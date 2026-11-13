@@ -46,6 +46,7 @@ public final class PlayedSettings {
 			.option(toggle("played.config.option.multiplayer_servers", "played.config.option.multiplayer_servers.description", true, PlayedConfig::shouldTrackServers, PlayedConfig::setTrackServers))
 			.option(toggle("played.config.option.ignore_afk_time", "played.config.option.ignore_afk_time.description", false, PlayedConfig::shouldPauseOnAfk, PlayedConfig::setPauseOnAfk))
 			.option(integerField("played.config.option.afk_timeout", "played.config.option.afk_timeout.description", 900, 0, 86400, PlayedConfig::getAfkTimeoutSeconds, PlayedConfig::setAfkTimeoutSeconds))
+			.option(integerField("played.config.option.break_reminder", "played.config.option.break_reminder.description", 0, 0, 480, PlayedConfig::getBreakReminderMinutes, PlayedConfig::setBreakReminderMinutes))
 			.option(toggle("played.config.option.milestone_notifications", "played.config.option.milestone_notifications.description", false, PlayedConfig::shouldNotifyMilestones, PlayedConfig::setNotifyMilestones))
 			.build();
 	}

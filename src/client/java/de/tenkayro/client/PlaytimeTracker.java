@@ -13,10 +13,12 @@ public final class PlaytimeTracker {
 	private static final long SAVE_INTERVAL_MILLIS = 15_000L;
 
 	private static Path currentWorldDirectory;
+	private static String currentWorldDisplayName;
 	private static String currentServerAddress;
 	private static long lastTickNanos;
 	private static long lastSaveNanos;
 	private static long sessionMillis;
+	private static long lastBreakReminderMinutes;
 	private static boolean tracking;
 	private static boolean paused;
 
@@ -36,7 +38,7 @@ public final class PlaytimeTracker {
 		long nowNanos = System.nanoTime();
 		// Initialize a new target before applying AFK detection, including stationary spawns.
 		if (worldDirectory != null && (!tracking || !worldDirectory.equals(currentWorldDirectory))) {
-			tickWorld(worldDirectory, nowNanos);
+			tickWorld(client, worldDirectory, nowNanos);
 			return;
 		}
 		if (serverInfo != null && (!tracking || !normalizeServerAddress(serverInfo.ip).equals(currentServerAddress))) {
@@ -55,7 +57,7 @@ public final class PlaytimeTracker {
 			return;
 		}
 		if (worldDirectory != null) {
-			tickWorld(worldDirectory, nowNanos);
+			tickWorld(client, worldDirectory, nowNanos);
 			return;
 		}
 
@@ -79,12 +81,20 @@ public final class PlaytimeTracker {
 		PlaytimeHistory.finish();
 		flush();
 		currentWorldDirectory = null;
+		currentWorldDisplayName = null;
 		currentServerAddress = null;
 		lastTickNanos = 0L;
 		lastSaveNanos = 0L;
 		sessionMillis = 0L;
+		lastBreakReminderMinutes = 0L;
 		tracking = false;
 		paused = false;
+	}
+
+	public static void resetSession() {
+		sessionMillis = 0L;
+		lastBreakReminderMinutes = 0L;
+		lastTickNanos = System.nanoTime();
 	}
 
 	public static long getSessionPlaytimeMillis() {
@@ -119,7 +129,7 @@ public final class PlaytimeTracker {
 		return 0L;
 	}
 
-	private static void tickWorld(Path worldDirectory, long nowNanos) {
+	private static void tickWorld(Minecraft client, Path worldDirectory, long nowNanos) {
 		if (!tracking || currentWorldDirectory == null || !worldDirectory.equals(currentWorldDirectory)) {
 			flush();
 			currentWorldDirectory = worldDirectory;
@@ -127,12 +137,19 @@ public final class PlaytimeTracker {
 			lastTickNanos = nowNanos;
 			lastSaveNanos = nowNanos;
 			sessionMillis = 0L;
+			lastBreakReminderMinutes = 0L;
 			lastActivityNanos = nowNanos;
 			tracking = true;
 			paused = false;
 			PlaytimeStorage.getWorldMillis(worldDirectory);
-			String name = worldDirectory.getFileName().toString();
-			PlaytimeHistory.begin("world:" + name, name, System.currentTimeMillis());
+			String folderName = worldDirectory.getFileName().toString();
+			IntegratedServer server = client.getSingleplayerServer();
+			String displayName = (server != null && server.getWorldData() != null)
+				? server.getWorldData().getLevelName() : folderName;
+			if (displayName == null || displayName.isBlank()) displayName = folderName;
+			currentWorldDisplayName = displayName;
+			PlaytimeStorage.setWorldDisplayName(worldDirectory, displayName);
+			PlaytimeHistory.begin("world:" + folderName, displayName, System.currentTimeMillis());
 			Played.LOGGER.info("Started world playtime tracking for {}", worldDirectory);
 			return;
 		}
@@ -143,7 +160,8 @@ public final class PlaytimeTracker {
 		sessionMillis += elapsedMillis;
 		long previous = PlaytimeStorage.getWorldMillis(worldDirectory);
 		PlaytimeStorage.addPlaytime(worldDirectory, elapsedMillis);
-		record(elapsedMillis, previous, PlaytimeStorage.getWorldMillis(worldDirectory), worldDirectory.getFileName().toString());
+		String name = currentWorldDisplayName != null ? currentWorldDisplayName : worldDirectory.getFileName().toString();
+		record(elapsedMillis, previous, PlaytimeStorage.getWorldMillis(worldDirectory), name);
 
 		if (nowNanos - lastSaveNanos >= SAVE_INTERVAL_MILLIS * 1_000_000L) {
 			flush();
@@ -156,10 +174,12 @@ public final class PlaytimeTracker {
 		if (!tracking || currentServerAddress == null || !serverAddress.equals(currentServerAddress)) {
 			flush();
 			currentWorldDirectory = null;
+			currentWorldDisplayName = null;
 			currentServerAddress = serverAddress;
 			lastTickNanos = nowNanos;
 			lastSaveNanos = nowNanos;
 			sessionMillis = 0L;
+			lastBreakReminderMinutes = 0L;
 			lastActivityNanos = nowNanos;
 			tracking = true;
 			paused = false;
@@ -185,6 +205,7 @@ public final class PlaytimeTracker {
 
 	private static void record(long elapsed, long previous, long current, String name) {
 		PlaytimeHistory.record(elapsed, System.currentTimeMillis(), java.time.ZoneId.systemDefault());
+		checkBreakReminder();
 		if (!PlayedConfig.shouldNotifyMilestones()) return;
 		long milestone = Milestones.crossed(previous, current);
 		if (milestone > 0) {
@@ -195,6 +216,21 @@ public final class PlaytimeTracker {
 		}
 	}
 
+	private static void checkBreakReminder() {
+		int interval = PlayedConfig.getBreakReminderMinutes();
+		if (interval <= 0) return;
+		long currentMinutes = sessionMillis / 60_000L;
+		if (currentMinutes > 0 && currentMinutes % interval == 0 && currentMinutes != lastBreakReminderMinutes) {
+			lastBreakReminderMinutes = currentMinutes;
+			var client = Minecraft.getInstance();
+			net.minecraft.client.gui.components.toasts.SystemToast.add(client.gui.toastManager(),
+				BREAK_REMINDER_TOAST, net.minecraft.network.chat.Component.translatable("played.break_reminder.title"),
+				net.minecraft.network.chat.Component.translatable("played.break_reminder.message", currentMinutes));
+		}
+	}
+
+	private static final net.minecraft.client.gui.components.toasts.SystemToast.@org.jspecify.annotations.NonNull SystemToastId BREAK_REMINDER_TOAST =
+		new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
 	private static final net.minecraft.client.gui.components.toasts.SystemToast.@org.jspecify.annotations.NonNull SystemToastId MILESTONE_TOAST =
 		new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
 

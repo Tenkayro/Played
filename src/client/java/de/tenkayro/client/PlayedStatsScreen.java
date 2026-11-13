@@ -122,9 +122,15 @@ public final class PlayedStatsScreen extends Screen {
         List<String[]> values;
         if (tab == 3) {
             DateTimeFormatter format = SessionDateFormat.create(Component.translatable("played.date.session_pattern").getString());
+            String activeLabel = Component.translatable("played.session.active").getString();
             values = PlaytimeHistory.snapshot().sessions.stream()
                 .filter(s -> (s.name() + " " + s.target()).toLowerCase(Locale.ROOT).contains(filter))
-                .map(s -> new String[] {s.name(), format.format(Instant.ofEpochMilli(s.start())) + " · " + s.target(), PlayedConfig.formatTime(s.millis())}).toList();
+                .map(s -> {
+                    boolean active = PlaytimeHistory.isActive(s.id());
+                    String name = active ? "● " + s.name() : s.name();
+                    String details = format.format(Instant.ofEpochMilli(s.start())) + " · " + s.target() + (active ? " (" + activeLabel + ")" : "");
+                    return new String[] {name, details, PlayedConfig.formatTime(s.millis())};
+                }).toList();
         } else {
             values = entries.stream().filter(e -> e.kind().equals(tab == 1 ? "world" : "server"))
                 .filter(e -> (e.name() + " " + e.key()).toLowerCase(Locale.ROOT).contains(filter))
@@ -144,10 +150,7 @@ public final class PlayedStatsScreen extends Screen {
             g.text(font, Objects.requireNonNull(row[2]), left() + panelWidth() - timeWidth, y, 0xFFEAB7F4);
             g.text(font, font.plainSubstrByWidth(Objects.requireNonNull(row[1]), panelWidth()), left(), y + 10, 0xFFB9ADCB);
             if (mouseX >= left() && mouseX < left() + panelWidth() && mouseY >= y && mouseY < y + 20)
-                g.setTooltipForNextFrame(List.of(
-                    Component.literal(Objects.requireNonNull(row[0])).getVisualOrderText(),
-                    Component.literal(Objects.requireNonNull(row[1])).getVisualOrderText()
-                ), mouseX, mouseY);
+                g.setTooltipForNextFrame(Component.literal(row[0] + "\n" + row[1]), mouseX, mouseY);
         }
         g.centeredText(font, Component.translatable("played.page", page + 1, pages), width / 2, height - 83, 0xFFB9ADCB);
     }

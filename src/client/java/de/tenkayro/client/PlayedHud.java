@@ -19,6 +19,7 @@ public final class PlayedHud {
 	private static long cachedCurrentSecond = -1L;
 	private static long cachedSessionSecond = -1L;
 	private static long cachedTotalSecond = -1L;
+	private static boolean cachedPaused;
 	private static String cachedTemplate;
 	private static PlayedConfig.TimeFormatMode cachedTimeFormat;
 	private static Component cachedText;
@@ -48,6 +49,8 @@ public final class PlayedHud {
 	private static boolean canRender(Minecraft minecraft) {
 		return minecraft.player != null
 			&& minecraft.level != null
+			&& minecraft.gui != null
+			&& !minecraft.gui.hud.isHidden()
 			&& minecraft.gui.screen() == null;
 	}
 
@@ -135,6 +138,7 @@ public final class PlayedHud {
 		long currentSecond = currentMillis / 1000L;
 		long sessionSecond = PlaytimeTracker.getSessionPlaytimeMillis() / 1000L;
 		long totalSecond = PlaytimeStorage.getAllTimeMillis() / 1000L;
+		boolean paused = PlaytimeTracker.isPaused();
 		String template = PlayedConfig.getHudTemplate();
 		PlayedConfig.TimeFormatMode timeFormat = PlayedConfig.getTimeFormat();
 		if (cachedLanguage != net.minecraft.locale.Language.getInstance()
@@ -142,11 +146,13 @@ public final class PlayedHud {
 			|| currentSecond != cachedCurrentSecond
 			|| sessionSecond != cachedSessionSecond
 			|| totalSecond != cachedTotalSecond
+			|| paused != cachedPaused
 			|| !Objects.equals(template, cachedTemplate)
 			|| timeFormat != cachedTimeFormat) {
 			cachedCurrentSecond = currentSecond;
 			cachedSessionSecond = sessionSecond;
 			cachedTotalSecond = totalSecond;
+			cachedPaused = paused;
 			cachedLanguage = net.minecraft.locale.Language.getInstance();
 			cachedTemplate = template;
 			cachedTimeFormat = timeFormat;

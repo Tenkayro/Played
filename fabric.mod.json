@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "played",
-	"version": "26.7.0",
+	"version": "26.10.0",
 	"name": "Played",
 	"description": "Tracks local playtime for singleplayer worlds and multiplayer servers, shows total playtime, and adds an optional Mod Menu config screen.",
 	"authors": ["Tenkayro"],

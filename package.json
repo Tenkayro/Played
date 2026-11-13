@@ -11,18 +11,9 @@
     "clean": "gradlew.bat clean",
     "tasks": "gradlew.bat tasks --all",
     "sources": "gradlew.bat genSources",
-    "release": "node scripts/release.mjs",
-    "translations:login": "node scripts/translations.mjs login",
-    "translations:push": "node scripts/translations.mjs push",
-    "translations:pull": "node scripts/translations.mjs pull",
-    "translations:test": "node --test scripts/translations.test.mjs",
-    "translations:prepare-languages": "node scripts/prepare-languages.mjs",
-    "translations:push-languages": "node scripts/translations.mjs push-languages"
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0"
-  },
-  "devDependencies": {
-    "@tolgee/cli": "2.21.0"
   }
 }
