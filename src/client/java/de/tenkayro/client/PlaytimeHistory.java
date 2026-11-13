@@ -103,6 +103,12 @@ public final class PlaytimeHistory {
 
     public static long longestSession() { return data.longestSession; }
 
+    public static Map.Entry<String, Long> bestDay() {
+        return data.days.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .orElse(null);
+    }
+
     public static long week(LocalDate date) {
         LocalDate monday = date.minusDays(date.getDayOfWeek().getValue() - 1);
         long total = 0;

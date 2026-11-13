@@ -28,6 +28,7 @@ public final class PlayedStatsScreen extends Screen {
     private Button next;
     private List<PlaytimeStorage.@NonNull Entry> entries;
     private @NonNull String status = "";
+    private int chartWeekOffset = 0;
 
     public PlayedStatsScreen(@Nullable Screen parent) {
         super(Component.translatable("played.stats.title"));
@@ -45,7 +46,7 @@ public final class PlayedStatsScreen extends Screen {
         for (int i = 0; i < tabs.length; i++) {
             final int selected = i;
             Button button = addRenderableWidget(Button.builder(Component.translatable("played.tab." + tabs[i]), b -> {
-                tab = selected; page = 0; rebuildWidgets();
+                tab = selected; page = 0; chartWeekOffset = 0; rebuildWidgets();
             }).bounds(x + i * (bw + gap), 30, bw, 20).build());
             button.active = tab != i;
         }
@@ -60,9 +61,13 @@ public final class PlayedStatsScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("played.import"), b -> minecraft.gui.setScreen(new PlayedImportScreen(this))).bounds(x + bw + gap, height - 52, bw, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("played.hud.edit"), b -> minecraft.gui.setScreen(new PlayedHudEditorScreen(this))).bounds(x + (bw + gap) * 2, height - 52, bw, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("played.settings"), b -> minecraft.gui.setScreen(PlayedSettings.createScreen(this))).bounds(x + (bw + gap) * 3, height - 52, bw, 20).build());
-        previous = addRenderableWidget(Button.builder(Component.literal("<"), b -> page = Math.max(0, page - 1)).bounds(x, height - 28, 36, 20).build());
-        next = addRenderableWidget(Button.builder(Component.literal(">"), b -> page++).bounds(x + w - 36, height - 28, 36, 20).build());
-        previous.visible = next.visible = tab != 0;
+        previous = addRenderableWidget(Button.builder(Component.literal("<"), b -> {
+            if (tab == 0) { chartWeekOffset++; } else { page = Math.max(0, page - 1); }
+        }).bounds(x, height - 28, 36, 20).build());
+        next = addRenderableWidget(Button.builder(Component.literal(">"), b -> {
+            if (tab == 0) { chartWeekOffset = Math.max(0, chartWeekOffset - 1); } else { page++; }
+        }).bounds(x + w - 36, height - 28, 36, 20).build());
+        previous.visible = next.visible = true;
         addRenderableWidget(Button.builder(Component.translatable("played.done"), b -> onClose()).bounds(x + 40, height - 28, w - 80, 20).build());
     }
 
@@ -71,6 +76,7 @@ public final class PlayedStatsScreen extends Screen {
             var file = PlaytimeTransfer.export(FabricLoader.getInstance().getGameDir());
             status = Component.translatable("played.export.done").getString();
             minecraft.keyboardHandler.setClipboard(Objects.requireNonNull(file.toAbsolutePath().toString()));
+            com.mojang.blaze3d.Blaze3D.openPath(Objects.requireNonNull(FabricLoader.getInstance().getGameDir().resolve("Played/exports")));
         } catch (Exception ex) {
             de.tenkayro.Played.LOGGER.warn("Could not export Played data", ex);
             status = Component.translatable("played.export.failed").getString();
@@ -93,13 +99,24 @@ public final class PlayedStatsScreen extends Screen {
         metric(g, "week", PlaytimeHistory.week(today), x, 90);
         metric(g, "longest", PlaytimeHistory.longestSession(), x + half, 90);
         g.text(font, Component.translatable("played.last_week", PlayedConfig.formatTime(PlaytimeHistory.week(today.minusWeeks(1)))), x, 117, 0xFFB9ADCB);
+        var best = PlaytimeHistory.bestDay();
+        if (best != null && best.getValue() > 0) {
+            g.text(font, Component.translatable("played.best_day", PlayedConfig.formatTime(best.getValue()), best.getKey()), x + half, 117, 0xFFB9ADCB);
+        }
+        previous.active = true;
+        next.active = chartWeekOffset > 0;
         int top = 138, bottom = height - 89;
         if (bottom <= top) return;
+        LocalDate anchor = today.minusWeeks(chartWeekOffset);
+        if (chartWeekOffset > 0) {
+            String weekLabel = Component.translatable("played.chart.weeks_ago", chartWeekOffset).getString();
+            g.centeredText(font, weekLabel, width / 2, 127, 0xFFEAB7F4);
+        }
         int step = panelWidth() / 7;
         long max = 1;
-        for (int i = 0; i < 7; i++) max = Math.max(max, PlaytimeHistory.day(today.minusDays(6 - i)));
+        for (int i = 0; i < 7; i++) max = Math.max(max, PlaytimeHistory.day(anchor.minusDays(6 - i)));
         for (int i = 0; i < 7; i++) {
-            LocalDate day = today.minusDays(6 - i);
+            LocalDate day = anchor.minusDays(6 - i);
             long value = PlaytimeHistory.day(day);
             int barX = x + i * step + 4;
             int barTop = bottom - (int) ((bottom - top) * ((double) value / max));

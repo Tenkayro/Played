@@ -21,6 +21,7 @@ public final class PlaytimeTracker {
 	private static long lastBreakReminderMinutes;
 	private static boolean tracking;
 	private static boolean paused;
+	private static boolean manuallyPaused;
 
 	private static long lastActivityNanos;
 
@@ -30,7 +31,7 @@ public final class PlaytimeTracker {
 	public static void tick(Minecraft client) {
 		Path worldDirectory = PlayedConfig.shouldTrackWorlds() ? getCurrentWorldDirectory(client) : null;
 		ServerData serverInfo = PlayedConfig.shouldTrackServers() ? getCurrentServer(client) : null;
-		if ((worldDirectory == null && serverInfo == null) || client.isPaused()) {
+		if ((worldDirectory == null && serverInfo == null) || client.isPaused() || manuallyPaused) {
 			pause();
 			return;
 		}
@@ -89,6 +90,21 @@ public final class PlaytimeTracker {
 		lastBreakReminderMinutes = 0L;
 		tracking = false;
 		paused = false;
+		manuallyPaused = false;
+	}
+
+	public static boolean isManuallyPaused() {
+		return manuallyPaused;
+	}
+
+	public static void setManuallyPaused(boolean paused) {
+		manuallyPaused = paused;
+		if (paused) {
+			pause();
+		} else {
+			lastTickNanos = System.nanoTime();
+			PlaytimeTracker.paused = false;
+		}
 	}
 
 	public static void resetSession() {
@@ -213,6 +229,9 @@ public final class PlaytimeTracker {
 			net.minecraft.client.gui.components.toasts.SystemToast.add(client.gui.toastManager(),
 				MILESTONE_TOAST, net.minecraft.network.chat.Component.translatable("played.milestone.title", milestone),
 				net.minecraft.network.chat.Component.literal(java.util.Objects.requireNonNull(name)));
+			if (PlayedConfig.shouldNotifySounds()) {
+				client.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F));
+			}
 		}
 	}
 
@@ -226,6 +245,9 @@ public final class PlaytimeTracker {
 			net.minecraft.client.gui.components.toasts.SystemToast.add(client.gui.toastManager(),
 				BREAK_REMINDER_TOAST, net.minecraft.network.chat.Component.translatable("played.break_reminder.title"),
 				net.minecraft.network.chat.Component.translatable("played.break_reminder.message", currentMinutes));
+			if (PlayedConfig.shouldNotifySounds()) {
+				client.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 1.0F));
+			}
 		}
 	}
 

@@ -59,7 +59,27 @@ public class PlayedClient implements ClientModInitializer {
 							PlaytimeTracker.resetSession();
 							context.getSource().sendFeedback(Component.translatable("played.command.session_reset").withStyle(net.minecraft.ChatFormatting.GREEN));
 							return 1;
+						}))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("pause")
+						.executes(context -> {
+							PlaytimeTracker.setManuallyPaused(true);
+							context.getSource().sendFeedback(Component.translatable("played.command.session_paused").withStyle(net.minecraft.ChatFormatting.YELLOW));
+							return 1;
+						}))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("resume")
+						.executes(context -> {
+							PlaytimeTracker.setManuallyPaused(false);
+							context.getSource().sendFeedback(Component.translatable("played.command.session_resumed").withStyle(net.minecraft.ChatFormatting.GREEN));
+							return 1;
 						})))
+				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("share")
+					.executes(context -> sharePlaytime(context.getSource(), "current"))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("session")
+						.executes(context -> sharePlaytime(context.getSource(), "session")))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("current")
+						.executes(context -> sharePlaytime(context.getSource(), "current")))
+					.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("total")
+						.executes(context -> sharePlaytime(context.getSource(), "total"))))
 				.then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("help")
 					.executes(context -> {
 						context.getSource().sendFeedback(Component.translatable("played.command.help").withStyle(net.minecraft.ChatFormatting.AQUA));
@@ -95,7 +115,10 @@ public class PlayedClient implements ClientModInitializer {
 			new KeyMapping("key.played.toggle_hud", InputConstants.UNKNOWN.getValue(), category));
 		var editor = KeyMappingHelper.registerKeyMapping(
 			new KeyMapping("key.played.edit_hud", InputConstants.UNKNOWN.getValue(), category));
+		var peek = KeyMappingHelper.registerKeyMapping(
+			new KeyMapping("key.played.peek_hud", InputConstants.UNKNOWN.getValue(), category));
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			PlayedHud.setPeeking(peek.isDown());
 			while (stats.consumeClick()) client.gui.setScreen(new PlayedStatsScreen(client.gui.screen()));
 			while (hud.consumeClick()) PlayedConfig.setShowHudPlaytime(!PlayedConfig.shouldShowHudPlaytime());
 			while (editor.consumeClick()) client.gui.setScreen(new PlayedHudEditorScreen(client.gui.screen()));
@@ -123,6 +146,31 @@ public class PlayedClient implements ClientModInitializer {
 
 	private static int sendStat(FabricClientCommandSource source, @org.jspecify.annotations.NonNull String label, long millis) {
 		source.sendFeedback(Component.translatable("played.command.stat", Component.translatable(label), Component.literal(PlayedConfig.formatTime(millis)).withStyle(net.minecraft.ChatFormatting.WHITE)).withStyle(net.minecraft.ChatFormatting.GRAY));
+		return 1;
+	}
+
+	private static int sharePlaytime(FabricClientCommandSource source, String type) {
+		Minecraft client = source.getClient();
+		long millis = switch (type) {
+			case "session" -> PlaytimeTracker.getSessionPlaytimeMillis();
+			case "total" -> PlaytimeStorage.getAllTimeMillis();
+			default -> PlaytimeTracker.getCurrentPlaytimeMillis(client);
+		};
+		String time = PlayedConfig.formatTime(millis);
+		String shareText = switch (type) {
+			case "session" -> "My current session playtime: " + time + " [Played]";
+			case "total" -> "My all-time Minecraft playtime: " + time + " [Played]";
+			default -> "My playtime here: " + time + " [Played]";
+		};
+		client.keyboardHandler.setClipboard(shareText);
+		var feedback = Component.literal(shareText).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE)
+			.append(Component.literal("  [Click to share]").withStyle(style -> style
+				.withColor(net.minecraft.ChatFormatting.AQUA)
+				.withUnderlined(true)
+				.withClickEvent(new net.minecraft.network.chat.ClickEvent.SuggestCommand(shareText))
+				.withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(Component.translatable("played.share.tooltip")))
+			));
+		source.sendFeedback(feedback);
 		return 1;
 	}
 }

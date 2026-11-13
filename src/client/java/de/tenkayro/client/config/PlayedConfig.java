@@ -45,6 +45,7 @@ public final class PlayedConfig {
 	private static final String KEY_PAUSE_ON_AFK = "pause_on_afk";
 	private static final String KEY_AFK_TIMEOUT_SECONDS = "afk_timeout_seconds";
 	private static final String KEY_BREAK_REMINDER_MINUTES = "break_reminder_minutes";
+	private static final String KEY_NOTIFY_SOUNDS = "notify_sounds";
 
 	private static Path configFile;
 	private static boolean trackWorlds = true;
@@ -76,6 +77,7 @@ public final class PlayedConfig {
 	private static boolean notifyMilestones = false;
 	private static int afkTimeoutSeconds = 900;
 	private static int breakReminderMinutes = 0;
+	private static boolean notifySounds = true;
 
 	private PlayedConfig() {
 	}
@@ -150,6 +152,7 @@ public final class PlayedConfig {
 			notifyMilestones = readBoolean(properties, "notify_milestones", notifyMilestones);
 			afkTimeoutSeconds = Math.max(0, readInt(properties, KEY_AFK_TIMEOUT_SECONDS, afkTimeoutSeconds));
 			breakReminderMinutes = Math.max(0, readInt(properties, KEY_BREAK_REMINDER_MINUTES, breakReminderMinutes));
+			notifySounds = readBoolean(properties, KEY_NOTIFY_SOUNDS, notifySounds);
 			
 			// Migrate old default configs to new gradient format
 			if ("\u23F1 {time}".equals(listPrefix)) listPrefix = "<gradient:#a855f7:#ec4899>\u23F1 {time}</gradient>";
@@ -208,6 +211,7 @@ public final class PlayedConfig {
 		properties.setProperty("notify_milestones", Boolean.toString(notifyMilestones));
 		properties.setProperty(KEY_AFK_TIMEOUT_SECONDS, Integer.toString(afkTimeoutSeconds));
 		properties.setProperty(KEY_BREAK_REMINDER_MINUTES, Integer.toString(breakReminderMinutes));
+		properties.setProperty(KEY_NOTIFY_SOUNDS, Boolean.toString(notifySounds));
 
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -248,6 +252,7 @@ public final class PlayedConfig {
 		pauseOnAfk = false;
 		afkTimeoutSeconds = 900;
 		breakReminderMinutes = 0;
+		notifySounds = true;
 		save();
 		Played.LOGGER.info("Config reset to defaults.");
 	}
@@ -516,6 +521,15 @@ public final class PlayedConfig {
 		save();
 	}
 
+	public static boolean shouldNotifySounds() {
+		return notifySounds;
+	}
+
+	public static void setNotifySounds(boolean notifySounds) {
+		PlayedConfig.notifySounds = notifySounds;
+		save();
+	}
+
 	public static net.minecraft.network.chat.Component formatListPlaytime(String formattedTime) {
 		return MiniMessageUtil.parse(formatPlaytime(localizeDefaultTemplate(listPrefix, "played.template.list"), formattedTime));
 	}
@@ -631,7 +645,7 @@ public final class PlayedConfig {
 			formatTime(PlaytimeStorage.getAllTimeMillis()),
 			formatTime(de.tenkayro.client.PlaytimeHistory.day(java.time.LocalDate.now())),
 			formatTime(de.tenkayro.client.PlaytimeHistory.week(java.time.LocalDate.now())),
-			PlaytimeTracker.isPaused() ? "[AFK]" : ""
+			PlaytimeTracker.isManuallyPaused() ? "[PAUSED]" : (PlaytimeTracker.isPaused() ? "[AFK]" : "")
 		);
 	}
 

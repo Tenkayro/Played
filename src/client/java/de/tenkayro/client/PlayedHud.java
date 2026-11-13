@@ -24,9 +24,13 @@ public final class PlayedHud {
 	private static PlayedConfig.TimeFormatMode cachedTimeFormat;
 	private static Component cachedText;
 	private static net.minecraft.locale.Language cachedLanguage;
+	private static boolean peeking;
 
 	private PlayedHud() {
 	}
+
+	public static void setPeeking(boolean peek) { peeking = peek; }
+	public static boolean isPeeking() { return peeking; }
 
 	public static void register() {
 		HudElementRegistry.attachElementBefore(
@@ -56,7 +60,7 @@ public final class PlayedHud {
 
 	private static void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (!PlayedConfig.shouldShowHudPlaytime() || !canRender(minecraft)) {
+		if ((!PlayedConfig.shouldShowHudPlaytime() && !peeking) || !canRender(minecraft)) {
 			return;
 		}
 

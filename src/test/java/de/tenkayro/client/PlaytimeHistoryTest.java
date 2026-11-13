@@ -86,4 +86,18 @@ class PlaytimeHistoryTest {
         PlaytimeHistory.initialize(directory);
         assertEquals(1_000, PlaytimeHistory.snapshot().longestSession);
     }
+
+    @Test void computesBestDayRecord() {
+        PlaytimeHistory.initialize(directory);
+        long day1 = LocalDate.of(2026, 11, 10).atStartOfDay(BERLIN).toInstant().toEpochMilli() + 3_600_000L;
+        long day2 = LocalDate.of(2026, 11, 11).atStartOfDay(BERLIN).toInstant().toEpochMilli() + 3_600_000L;
+        PlaytimeHistory.begin("world:Test", "Test", day1);
+        PlaytimeHistory.record(10_000L, day1 + 10_000L, BERLIN);
+        PlaytimeHistory.begin("world:Test", "Test", day2);
+        PlaytimeHistory.record(50_000L, day2 + 50_000L, BERLIN);
+        var best = PlaytimeHistory.bestDay();
+        assertNotNull(best);
+        assertEquals("2026-11-11", best.getKey());
+        assertEquals(50_000L, best.getValue());
+    }
 }
